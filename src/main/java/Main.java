@@ -1,32 +1,23 @@
 import java.io.IOException;
 import java.net.ServerSocket;
-import java.net.Socket;
 
 public class Main {
 
-	public static void main(String[] args) {
-		// You can use print statements as follows for debugging, they'll be visible when running tests.
-		System.out.println("Logs from your program will appear here!");
+	public static final int PORT = 6379;
 
-		//  Uncomment this block to pass the first stage
-		ServerSocket serverSocket = null;
-		Socket clientSocket = null;
-		int port = 6379;
-		try {
-			serverSocket = new ServerSocket(port);
+	public static void main(String[] args) throws IOException {
+		System.out.println("codecrafters build-your-own-redis");
+
+		try (final var serverSocket = new ServerSocket(PORT)) {
 			serverSocket.setReuseAddress(true);
-			// Wait for connection from client.
-			clientSocket = serverSocket.accept();
-		} catch (IOException e) {
-			System.out.println("IOException: " + e.getMessage());
-		} finally {
-			try {
-				if (clientSocket != null) {
-					clientSocket.close();
-				}
-			} catch (IOException e) {
-				System.out.println("IOException: " + e.getMessage());
-			}
+
+			final var client = serverSocket.accept();
+
+			final var outputStream = client.getOutputStream();
+			outputStream.write("+PONG\r\n".getBytes());
+			outputStream.flush();
+
+			client.close();
 		}
 	}
 
