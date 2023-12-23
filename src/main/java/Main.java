@@ -15,6 +15,7 @@ public class Main {
 
 			final var outputStream = client.getOutputStream();
 			outputStream.write("+PONG\r\n".getBytes());
+			outputStream.write("+PONG\r\n".getBytes());
 			outputStream.flush();
 
 			client.close();
