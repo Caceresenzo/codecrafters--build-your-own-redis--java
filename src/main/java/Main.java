@@ -1,4 +1,6 @@
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.ServerSocket;
 
 public class Main {
@@ -13,10 +15,21 @@ public class Main {
 
 			final var client = serverSocket.accept();
 
+			final var reader = new BufferedReader(new InputStreamReader(client.getInputStream()));
 			final var outputStream = client.getOutputStream();
-			outputStream.write("+PONG\r\n".getBytes());
-			outputStream.write("+PONG\r\n".getBytes());
-			outputStream.flush();
+
+			String line;
+			while ((line = reader.readLine()) != null) {
+				//				System.out.println(line);
+
+				if ("DOCS".equalsIgnoreCase(line)) {
+					outputStream.write("*0\r\n".getBytes());
+				} else if ("PING".equalsIgnoreCase(line)) {
+					outputStream.write("+PONG\r\n".getBytes());
+				}
+
+				outputStream.flush();
+			}
 
 			client.close();
 		}
