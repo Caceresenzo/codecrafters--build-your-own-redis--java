@@ -1,3 +1,4 @@
+package redis;
 import java.io.IOException;
 import java.net.ServerSocket;
 
@@ -14,9 +15,10 @@ public class Main {
 			serverSocket.setReuseAddress(true);
 
 			while (true) {
-				final var client = serverSocket.accept();
+				final var socket = serverSocket.accept();
+				final var client = new Client(socket);
 
-				final var thread = threadFactory.newThread(new Client(client));
+				final var thread = threadFactory.newThread(client);
 				thread.start();
 			}
 		}
