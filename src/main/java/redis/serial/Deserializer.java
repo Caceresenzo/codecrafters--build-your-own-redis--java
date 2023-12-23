@@ -1,4 +1,5 @@
 package redis.serial;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -39,25 +40,30 @@ public class Deserializer {
 	private Object parseArray() throws IOException {
 		final var length = parseUnsignedInteger();
 
+		if (length == -1) {
+			return null;
+		}
+
 		if (length == 0) {
 			return Collections.emptyList();
 		}
 
 		final var array = new ArrayList<Object>();
 		for (int index = 0; index < length; index++) {
-			final var child = read();
-			if (child == null) {
-				return null;
-			}
-
-			array.add(child);
+			array.add(read());
 		}
 
 		return array;
 	}
 
 	private int parseUnsignedInteger() throws IOException {
-		return Integer.parseUnsignedInt(parseUntilEndOfLine());
+		final var line = parseUntilEndOfLine();
+
+		if ("-1".equals(line)) {
+			return -1;
+		}
+
+		return Integer.parseUnsignedInt(line);
 	}
 
 	private String parseUntilEndOfLine() throws IOException {

@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.List;
 
 import lombok.RequiredArgsConstructor;
+import redis.store.Storage;
 import redis.type.BulkString;
 import redis.type.Error;
 import redis.type.Ok;
@@ -68,14 +69,24 @@ public class Evaluator {
 	}
 
 	private Object evaluateSet(List<?> list) {
-		if (list.size() != 3) {
+		if (list.size() != 3 && list.size() != 5) {
 			return new Error("ERR wrong number of arguments for 'set' command");
 		}
 
 		final var key = String.valueOf(list.get(1));
 		final var value = list.get(2);
 
-		storage.set(key, value);
+		if (list.size() == 5) {
+			final var px = String.valueOf(list.get(3));
+			if (!"px".equalsIgnoreCase(px)) {
+				return Error.syntax();
+			}
+
+			final var millisecondes = Long.parseLong(String.valueOf(list.get(4)));
+			storage.set(key, value, millisecondes);
+		} else {
+			storage.set(key, value);
+		}
 
 		return Ok.INSTANCE;
 	}

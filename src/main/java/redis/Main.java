@@ -2,6 +2,8 @@ package redis;
 import java.io.IOException;
 import java.net.ServerSocket;
 
+import redis.store.Storage;
+
 public class Main {
 
 	public static final int PORT = 6379;

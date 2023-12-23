@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import redis.serial.Deserializer;
 import redis.serial.Serializer;
+import redis.store.Storage;
 
 public class Client implements Runnable {
 

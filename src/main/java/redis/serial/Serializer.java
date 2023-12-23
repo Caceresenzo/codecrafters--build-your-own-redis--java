@@ -14,6 +14,7 @@ public class Serializer {
 
 	private static final byte[] CRLF_BYTES = Protocol.CRLF.getBytes();
 	private static final byte[] OK_BYTES = { 'O', 'K' };
+	private static final byte[] MINUS_ONE_BYTES = { '-', '1' };
 
 	private final OutputStream outputStream;
 
@@ -58,11 +59,23 @@ public class Serializer {
 	}
 
 	private boolean writeBulkString(String string) throws IOException {
+		if (string == null) {
+			return writeNullBulkString(string);
+		}
+
 		outputStream.write(Protocol.BULK_STRING);
 		outputStream.write(String.valueOf(string.length()).getBytes());
 		outputStream.write(CRLF_BYTES);
 
 		outputStream.write(string.getBytes());
+		outputStream.write(CRLF_BYTES);
+
+		return true;
+	}
+
+	private boolean writeNullBulkString(String string) throws IOException {
+		outputStream.write(Protocol.BULK_STRING);
+		outputStream.write(MINUS_ONE_BYTES);
 		outputStream.write(CRLF_BYTES);
 
 		return true;
