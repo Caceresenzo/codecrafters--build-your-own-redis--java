@@ -97,8 +97,13 @@ public class Evaluator {
 		}
 
 		final var key = String.valueOf(list.get(1));
+		final var value = storage.get(key);
 
-		return storage.get(key);
+		if (value == null) {
+			return new BulkString(null);
+		}
+
+		return value;
 	}
 
 }
