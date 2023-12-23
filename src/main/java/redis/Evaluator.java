@@ -1,42 +1,54 @@
 package redis;
+
 import java.util.Collections;
 import java.util.List;
 
+import lombok.RequiredArgsConstructor;
 import redis.type.BulkString;
 import redis.type.Error;
+import redis.type.Ok;
 
+@RequiredArgsConstructor
 public class Evaluator {
+
+	private final Storage storage;
 
 	public Object evaluate(Object value) {
 		if (value instanceof List<?> list) {
-			return evaluateList(list);
+			return evaluate(list);
 		}
 
-		return null;
+		return new Error("ERR command be sent in an array");
 	}
 
-	private Object evaluateList(List<?> list) {
-		if (list.isEmpty()) {
-			return null;
+	private Object evaluate(List<?> arguments) {
+		if (arguments.isEmpty()) {
+			return new Error("ERR command array is empty");
 		}
 
-		if (!(list.getFirst() instanceof String first)) {
-			return null;
+		final var command = String.valueOf(arguments.getFirst());
+
+		if ("COMMAND".equalsIgnoreCase(command)) {
+			return evaluateCommand(arguments);
 		}
 
-		if ("COMMAND".equalsIgnoreCase(first)) {
-			return evaluateCommand(list);
+		if ("PING".equalsIgnoreCase(command)) {
+			return evaluatePing(arguments);
 		}
 
-		if ("PING".equalsIgnoreCase(first)) {
-			return evaluatePing(list);
+		if ("ECHO".equalsIgnoreCase(command)) {
+			return evaluateEcho(arguments);
 		}
 
-		if ("ECHO".equalsIgnoreCase(first)) {
-			return evaluateEcho(list);
+		if ("SET".equalsIgnoreCase(command)) {
+			return evaluateSet(arguments);
 		}
 
-		return null;
+		if ("GET".equalsIgnoreCase(command)) {
+			return evaluateGet(arguments);
+		}
+
+		return new Error("ERR unknown '%s' command".formatted(command));
 	}
 
 	private Object evaluateCommand(List<?> list) {
@@ -53,6 +65,29 @@ public class Evaluator {
 		}
 
 		return new BulkString(String.valueOf(list.get(1)));
+	}
+
+	private Object evaluateSet(List<?> list) {
+		if (list.size() != 3) {
+			return new Error("ERR wrong number of arguments for 'set' command");
+		}
+
+		final var key = String.valueOf(list.get(1));
+		final var value = list.get(2);
+
+		storage.set(key, value);
+
+		return Ok.INSTANCE;
+	}
+
+	private Object evaluateGet(List<?> list) {
+		if (list.size() != 2) {
+			return new Error("ERR wrong number of arguments for 'get' command");
+		}
+
+		final var key = String.valueOf(list.get(1));
+
+		return storage.get(key);
 	}
 
 }

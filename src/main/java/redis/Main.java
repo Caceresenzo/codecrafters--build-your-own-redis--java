@@ -10,13 +10,14 @@ public class Main {
 		System.out.println("codecrafters build-your-own-redis");
 
 		final var threadFactory = Thread.ofVirtual().factory();
+		final var storage = new Storage();
 
 		try (final var serverSocket = new ServerSocket(PORT)) {
 			serverSocket.setReuseAddress(true);
 
 			while (true) {
 				final var socket = serverSocket.accept();
-				final var client = new Client(socket);
+				final var client = new Client(socket, storage);
 
 				final var thread = threadFactory.newThread(client);
 				thread.start();

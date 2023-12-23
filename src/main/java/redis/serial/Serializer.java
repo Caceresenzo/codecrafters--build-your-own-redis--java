@@ -1,4 +1,5 @@
 package redis.serial;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
@@ -6,11 +7,13 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import redis.type.BulkString;
 import redis.type.Error;
+import redis.type.Ok;
 
 @RequiredArgsConstructor
 public class Serializer {
 
 	private static final byte[] CRLF_BYTES = Protocol.CRLF.getBytes();
+	private static final byte[] OK_BYTES = { 'O', 'K' };
 
 	private final OutputStream outputStream;
 
@@ -33,6 +36,14 @@ public class Serializer {
 
 		if (value instanceof Error error) {
 			return writeError(error);
+		}
+
+		if (value instanceof Ok) {
+			return writeOk();
+		}
+
+		if (value == null) {
+			return writeNil();
 		}
 
 		throw new UnsupportedOperationException("type " + value.getClass().getSimpleName());
@@ -76,6 +87,21 @@ public class Serializer {
 
 		outputStream.write(Protocol.SIMPLE_ERROR);
 		outputStream.write(message.getBytes());
+		outputStream.write(CRLF_BYTES);
+
+		return true;
+	}
+
+	private boolean writeOk() throws IOException {
+		outputStream.write(Protocol.SIMPLE_STRING);
+		outputStream.write(OK_BYTES);
+		outputStream.write(CRLF_BYTES);
+
+		return true;
+	}
+
+	private boolean writeNil() throws IOException {
+		outputStream.write(Protocol.NULL);
 		outputStream.write(CRLF_BYTES);
 
 		return true;

@@ -1,4 +1,5 @@
 package redis;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
@@ -14,25 +15,26 @@ public class Client implements Runnable {
 
 	private final int id;
 	private final Socket socket;
-	private final BufferedInputStream inputStream;
-	private final BufferedOutputStream outputStream;
+	private final Storage storage;
 
-	public Client(Socket socket) throws IOException {
+	public Client(Socket socket, Storage storage) throws IOException {
 		this.id = ID_INCREMENT.incrementAndGet();
 		this.socket = socket;
-		this.inputStream = new BufferedInputStream(socket.getInputStream());
-		this.outputStream = new BufferedOutputStream(socket.getOutputStream());
+		this.storage = storage;
 	}
 
 	@Override
 	public void run() {
 		System.out.println("%d: connected".formatted(id));
 
-		final var deserializer = new Deserializer(inputStream);
-		final var serializer = new Serializer(outputStream);
-		final var evaluator = new Evaluator();
-
 		try (socket) {
+			final var inputStream = new BufferedInputStream(socket.getInputStream());
+			final var outputStream = new BufferedOutputStream(socket.getOutputStream());
+
+			final var deserializer = new Deserializer(inputStream);
+			final var serializer = new Serializer(outputStream);
+			final var evaluator = new Evaluator(storage);
+
 			Object value;
 			while ((value = deserializer.read()) != null) {
 				//				System.out.println(value);
@@ -40,10 +42,8 @@ public class Client implements Runnable {
 				value = evaluator.evaluate(value);
 				//				System.out.println(value);
 
-				if (value != null) {
-					serializer.write(value);
-					outputStream.flush();
-				}
+				serializer.write(value);
+				outputStream.flush();
 			}
 
 			socket.close();
