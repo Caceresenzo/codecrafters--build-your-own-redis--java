@@ -5,18 +5,18 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class Storage {
 
-	private final Map<String, Expiry<Object>> map = new ConcurrentHashMap<>();
+	private final Map<String, Cell<Object>> map = new ConcurrentHashMap<>();
 
 	public void set(String key, Object value) {
-		map.put(key, Expiry.never(value));
+		map.put(key, Cell.with(value));
 	}
 
 	public void set(String key, Object value, long milliseconds) {
-		map.put(key, Expiry.in(value, milliseconds));
+		map.put(key, Cell.expiry(value, milliseconds));
 	}
 
 	public Object get(String key) {
-		final var expiry = map.computeIfPresent(
+		final var cell = map.computeIfPresent(
 			key,
 			(key_, value) -> {
 				if (value.isExpired()) {
@@ -27,8 +27,8 @@ public class Storage {
 			}
 		);
 
-		if (expiry != null) {
-			return expiry.value();
+		if (cell != null) {
+			return cell.value();
 		}
 
 		return null;

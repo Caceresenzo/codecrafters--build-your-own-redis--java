@@ -60,7 +60,7 @@ public class Serializer {
 
 	private boolean writeBulkString(String string) throws IOException {
 		if (string == null) {
-			return writeNullBulkString(string);
+			return writeNullBulkString();
 		}
 
 		outputStream.write(Protocol.BULK_STRING);
@@ -73,7 +73,7 @@ public class Serializer {
 		return true;
 	}
 
-	private boolean writeNullBulkString(String string) throws IOException {
+	private boolean writeNullBulkString() throws IOException {
 		outputStream.write(Protocol.BULK_STRING);
 		outputStream.write(MINUS_ONE_BYTES);
 		outputStream.write(CRLF_BYTES);

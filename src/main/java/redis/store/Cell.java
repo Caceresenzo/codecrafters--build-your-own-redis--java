@@ -1,6 +1,6 @@
 package redis.store;
 
-public record Expiry<T>(
+public record Cell<T>(
 	T value,
 	long until
 ) {
@@ -9,18 +9,18 @@ public record Expiry<T>(
 		if (until == -1) {
 			return false;
 		}
-		
+
 		return System.currentTimeMillis() > until;
 	}
 
-	public static <T> Expiry<T> never(T value) {
-		return new Expiry<T>(value, -1);
+	public static <T> Cell<T> with(T value) {
+		return new Cell<>(value, -1);
 	}
 
-	public static <T> Expiry<T> in(T value, long milliseconds) {
+	public static <T> Cell<T> expiry(T value, long milliseconds) {
 		final var until = System.currentTimeMillis() + milliseconds;
 
-		return new Expiry<T>(value, until);
+		return new Cell<>(value, until);
 	}
 
 }

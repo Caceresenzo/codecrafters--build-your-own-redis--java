@@ -1,6 +1,9 @@
 package redis.serial;
 
-public interface Protocol {
+import lombok.experimental.UtilityClass;
+
+@UtilityClass
+public class Protocol {
 
 	public static final char ARRAY = '*';
 	public static final char NULL = '_';
