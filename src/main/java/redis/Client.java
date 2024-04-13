@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.net.Socket;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import redis.configuration.Configuration;
 import redis.serial.Deserializer;
 import redis.serial.Serializer;
 import redis.store.Storage;
@@ -17,11 +18,13 @@ public class Client implements Runnable {
 	private final int id;
 	private final Socket socket;
 	private final Storage storage;
+	private final Configuration configurationStorage;
 
-	public Client(Socket socket, Storage storage) throws IOException {
+	public Client(Socket socket, Storage storage, Configuration configurationStorage) throws IOException {
 		this.id = ID_INCREMENT.incrementAndGet();
 		this.socket = socket;
 		this.storage = storage;
+		this.configurationStorage = configurationStorage;
 	}
 
 	@Override
@@ -34,7 +37,7 @@ public class Client implements Runnable {
 
 			final var deserializer = new Deserializer(inputStream);
 			final var serializer = new Serializer(outputStream);
-			final var evaluator = new Evaluator(storage);
+			final var evaluator = new Evaluator(storage, configurationStorage);
 
 			Object value;
 			while ((value = deserializer.read()) != null) {

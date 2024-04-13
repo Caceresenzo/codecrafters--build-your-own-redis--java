@@ -1,7 +1,9 @@
 package redis;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 
+import redis.configuration.Configuration;
 import redis.store.Storage;
 
 public class Main {
@@ -13,13 +15,26 @@ public class Main {
 
 		final var threadFactory = Thread.ofVirtual().factory();
 		final var storage = new Storage();
+		final var configuration = new Configuration();
+
+		for (var index = 0; index < args.length; index += 2) {
+			final var key = args[index].substring(2);
+			final var value = args[index + 1];
+
+			final var property = configuration.getProperty(key);
+			if (property == null) {
+				System.err.println("unknown property: %s".formatted(key));
+			} else {
+				property.set(value);
+			}
+		}
 
 		try (final var serverSocket = new ServerSocket(PORT)) {
 			serverSocket.setReuseAddress(true);
 
 			while (true) {
 				final var socket = serverSocket.accept();
-				final var client = new Client(socket, storage);
+				final var client = new Client(socket, storage, configuration);
 
 				final var thread = threadFactory.newThread(client);
 				thread.start();

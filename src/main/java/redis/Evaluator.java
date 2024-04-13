@@ -1,9 +1,11 @@
 package redis;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 import lombok.RequiredArgsConstructor;
+import redis.configuration.Configuration;
 import redis.store.Storage;
 import redis.type.BulkString;
 import redis.type.Error;
@@ -13,6 +15,7 @@ import redis.type.Ok;
 public class Evaluator {
 
 	private final Storage storage;
+	private final Configuration configurationStorage;
 
 	public Object evaluate(Object value) {
 		if (value instanceof List<?> list) {
@@ -47,6 +50,10 @@ public class Evaluator {
 
 		if ("GET".equalsIgnoreCase(command)) {
 			return evaluateGet(arguments);
+		}
+
+		if ("CONFIG".equalsIgnoreCase(command)) {
+			return evaluateConfig(arguments);
 		}
 
 		return new Error("ERR unknown '%s' command".formatted(command));
@@ -104,6 +111,26 @@ public class Evaluator {
 		}
 
 		return value;
+	}
+
+	private Object evaluateConfig(List<?> list) {
+		final var action = String.valueOf(list.get(1));
+
+		if ("GET".equalsIgnoreCase(action)) {
+			final var key = String.valueOf(list.get(2));
+
+			final var property = configurationStorage.getProperty(key);
+			if (property == null) {
+				return Collections.emptyList();
+			}
+
+			return Arrays.asList(
+				key,
+				property.get()
+			);
+		}
+
+		return new Error("ERR unknown subcommand '%s'. Try CONFIG HELP.".formatted(action));
 	}
 
 }
