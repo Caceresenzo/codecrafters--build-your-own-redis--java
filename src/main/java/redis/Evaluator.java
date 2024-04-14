@@ -52,6 +52,10 @@ public class Evaluator {
 			return evaluateGet(arguments);
 		}
 
+		if ("KEYS".equalsIgnoreCase(command)) {
+			return evaluateKeys(arguments);
+		}
+
 		if ("CONFIG".equalsIgnoreCase(command)) {
 			return evaluateConfig(arguments);
 		}
@@ -111,6 +115,16 @@ public class Evaluator {
 		}
 
 		return value;
+	}
+
+	private Object evaluateKeys(List<?> list) {
+		if (list.size() != 2) {
+			return new Error("ERR wrong number of arguments for 'keys' command");
+		}
+
+		final var pattern = String.valueOf(list.get(1));
+
+		return storage.keys();
 	}
 
 	private Object evaluateConfig(List<?> list) {
