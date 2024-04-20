@@ -2,6 +2,7 @@ package redis;
 
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import redis.configuration.Configuration;
@@ -35,7 +36,10 @@ public class Main {
 		final var databaseFilename = configuration.databaseFilename();
 		if (directory.isSet() && databaseFilename.isSet()) {
 			final var path = Paths.get(directory.get(), databaseFilename.get());
-			RdbLoader.load(path, storage);
+
+			if (Files.exists(path)) {
+				RdbLoader.load(path, storage);
+			}
 		}
 
 		try (final var serverSocket = new ServerSocket(PORT)) {
