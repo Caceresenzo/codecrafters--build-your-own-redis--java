@@ -17,6 +17,10 @@ public class Property {
 		return value;
 	}
 
+	public boolean isSet() {
+		return value != null;
+	}
+
 	public void set(String value) {
 		this.value = value;
 	}

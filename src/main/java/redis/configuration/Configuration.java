@@ -3,10 +3,14 @@ package redis.configuration;
 import java.util.Arrays;
 import java.util.List;
 
+import lombok.Getter;
+import lombok.experimental.Accessors;
+
+@Accessors(fluent = true)
 public class Configuration {
 
-	private final Property directory = new Property("dir");
-	private final Property databaseFilename = new Property("dbfilename");
+	private final @Getter Property directory = new Property("dir");
+	private final @Getter Property databaseFilename = new Property("dbfilename");
 
 	private final List<Property> properties = Arrays.asList(
 		directory,

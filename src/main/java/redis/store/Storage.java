@@ -17,6 +17,10 @@ public class Storage {
 		map.put(key, Cell.expiry(value, milliseconds));
 	}
 
+	public void put(String key, Cell<Object> cell) {
+		map.put(key, cell);
+	}
+
 	public Object get(String key) {
 		final var cell = map.computeIfPresent(
 			key,
