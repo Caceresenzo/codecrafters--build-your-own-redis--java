@@ -56,6 +56,10 @@ public class Evaluator {
 			return evaluateKeys(arguments);
 		}
 
+		if ("TYPE".equalsIgnoreCase(command)) {
+			return evaluateType(arguments);
+		}
+
 		if ("CONFIG".equalsIgnoreCase(command)) {
 			return evaluateConfig(arguments);
 		}
@@ -125,6 +129,29 @@ public class Evaluator {
 		final var pattern = String.valueOf(list.get(1));
 
 		return storage.keys();
+	}
+
+	private Object evaluateType(List<?> list) {
+		if (list.size() != 2) {
+			return new Error("ERR wrong number of arguments for 'type' command");
+		}
+
+		final var key = String.valueOf(list.get(1));
+		final var value = storage.get(key);
+
+		if (value == null) {
+			return "none";
+		}
+
+		if (value instanceof List) {
+			return "list";
+		}
+
+		if (value instanceof String) {
+			return "string";
+		}
+
+		throw new IllegalStateException("unknown type: %s".formatted(value.getClass()));
 	}
 
 	private Object evaluateConfig(List<?> list) {
