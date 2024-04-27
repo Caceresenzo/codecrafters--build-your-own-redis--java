@@ -13,7 +13,7 @@ public class Stream {
 
 	private final List<StreamEntry> entries = new ArrayList<>();
 
-	public UniqueIdentifier add(Identifier id, List<Object> content) {
+	public synchronized UniqueIdentifier add(Identifier id, List<Object> content) {
 		final var unique = switch (id) {
 			case MillisecondsIdentifier identifier -> getIdentifier(identifier.milliseconds());
 			case UniqueIdentifier identifier -> identifier;
@@ -27,6 +27,32 @@ public class Stream {
 		entries.add(new StreamEntry(unique, content));
 
 		return unique;
+	}
+
+	public synchronized List<StreamEntry> range(Identifier from, Identifier to) {
+		final var result = new ArrayList<StreamEntry>();
+
+		var collecting = false;
+
+		for (final var entry : entries) {
+			final var identifier = entry.identifier();
+
+			//			System.out.println("IN ?  identifier " + identifier + " from " + from + " compareTo " + identifier.compareTo(from));
+			//			System.out.println("OUT?  identifier " + identifier + " to " + to + " compareTo " + identifier.compareTo(to));
+
+			if (identifier.compareTo(to) > 0) {
+				break;
+			}
+
+			if (collecting) {
+				result.add(entry);
+			} else if (identifier.compareTo(from) >= 0) {
+				collecting = true;
+				result.add(entry);
+			}
+		}
+
+		return result;
 	}
 
 	public UniqueIdentifier getIdentifier(long milliseconds) {

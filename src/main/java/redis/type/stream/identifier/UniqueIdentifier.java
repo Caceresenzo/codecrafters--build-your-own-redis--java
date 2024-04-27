@@ -3,18 +3,26 @@ package redis.type.stream.identifier;
 public record UniqueIdentifier(
 	long milliseconds,
 	long sequenceNumber
-) implements Identifier, Comparable<UniqueIdentifier> {
+) implements Identifier, Comparable<Identifier> {
 
 	public static final UniqueIdentifier MIN = new UniqueIdentifier(0, 1);
 
 	@Override
-	public int compareTo(UniqueIdentifier other) {
-		var compare = Long.compare(this.milliseconds(), other.milliseconds());
-		if (compare != 0) {
-			return compare;
-		}
+	public int compareTo(Identifier other) {
+		return switch (other) {
+			case MillisecondsIdentifier right -> Long.compare(this.milliseconds(), right.milliseconds());
 
-		return Long.compare(this.sequenceNumber(), other.sequenceNumber());
+			case WildcardIdentifier right -> 0;
+
+			case UniqueIdentifier right -> {
+				var compare = Long.compare(this.milliseconds(), right.milliseconds());
+				if (compare != 0) {
+					yield compare;
+				}
+
+				yield Long.compare(this.sequenceNumber(), right.sequenceNumber());
+			}
+		};
 	}
 
 	@Override

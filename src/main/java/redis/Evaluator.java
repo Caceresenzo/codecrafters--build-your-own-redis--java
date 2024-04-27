@@ -1,5 +1,6 @@
 package redis;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -65,6 +66,10 @@ public class Evaluator {
 
 		if ("XADD".equalsIgnoreCase(command)) {
 			return evaluateXAdd(arguments);
+		}
+
+		if ("XRANGE".equalsIgnoreCase(command)) {
+			return evaluateXRange(arguments);
 		}
 
 		if ("KEYS".equalsIgnoreCase(command)) {
@@ -140,7 +145,7 @@ public class Evaluator {
 		final var key = String.valueOf(list.get(1));
 		final var id = Identifier.parse(String.valueOf(list.get(2)));
 
-		final var keyValues = list.subList(2, list.size() - 1);
+		final var keyValues = new ArrayList<>(list.subList(2, list.size() - 1));
 
 		final var newIdReference = new AtomicReference<UniqueIdentifier>();
 		storage.append(
@@ -154,6 +159,22 @@ public class Evaluator {
 		);
 
 		return new BulkString(newIdReference.get().toString());
+	}
+
+	private Object evaluateXRange(List<Object> list) {
+		final var key = String.valueOf(list.get(1));
+		final var fromId = Identifier.parse(String.valueOf(list.get(2)));
+		final var toId = Identifier.parse(String.valueOf(list.get(3)));
+
+		final var stream = (Stream) storage.get(key);
+		final var entries = stream.range(fromId, toId);
+
+		return entries.stream()
+			.map((entry) -> List.of(
+				new BulkString(entry.identifier().toString()),
+				entry.content()
+			))
+			.toList();
 	}
 
 	private Object evaluateKeys(List<?> list) {
