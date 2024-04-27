@@ -38,7 +38,14 @@ public class Stream {
 			}
 		}
 
-		return new UniqueIdentifier(milliseconds, 0l);
+		final var sequenceNumber = milliseconds == 0
+			? 1l
+			: 0l;
+
+		return new UniqueIdentifier(
+			milliseconds,
+			sequenceNumber
+		);
 	}
 
 	public boolean isUnique(UniqueIdentifier identifier) {
