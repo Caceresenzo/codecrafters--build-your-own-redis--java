@@ -2,6 +2,9 @@ package redis.type.stream.identifier;
 
 import java.util.regex.Pattern;
 
+import redis.type.Error;
+import redis.type.ErrorException;
+
 public sealed interface Identifier permits MillisecondsIdentifier, UniqueIdentifier, WildcardIdentifier {
 
 	public static final Pattern PATTERN = Pattern.compile("^(\\d+)-(\\d+|\\*)$");
@@ -13,7 +16,7 @@ public sealed interface Identifier permits MillisecondsIdentifier, UniqueIdentif
 
 		final var matcher = PATTERN.matcher(input);
 		if (!matcher.find()) {
-			throw new IllegalArgumentException("not a valid identifier: %s".formatted(input));
+			throw new ErrorException(Error.streamIdInvalid());
 		}
 
 		final var milliseconds = Long.parseLong(matcher.group(1));

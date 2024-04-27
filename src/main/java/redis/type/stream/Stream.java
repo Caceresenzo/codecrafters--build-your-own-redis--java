@@ -43,20 +43,16 @@ public class Stream {
 	}
 
 	public boolean isUnique(UniqueIdentifier identifier) {
+		if (identifier.compareTo(UniqueIdentifier.MIN) < 0) {
+			return false;
+		}
+		
 		if (entries.isEmpty()) {
 			return true;
 		}
 
 		final var last = entries.getLast().identifier();
-		if (last.milliseconds() > identifier.milliseconds()) {
-			return false;
-		}
-
-		if (last.milliseconds() == identifier.milliseconds()) {
-			return last.sequenceNumber() < identifier.sequenceNumber();
-		}
-
-		return true;
+		return identifier.compareTo(last) > 0;
 	}
 
 }
