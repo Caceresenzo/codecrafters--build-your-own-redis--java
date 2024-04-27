@@ -19,6 +19,7 @@ public class Stream {
 	private final List<StreamEntry> entries = new ArrayList<>();
 	private final ReadWriteLock lock = new ReentrantReadWriteLock();
 	private final Condition newDataCondition = lock.writeLock().newCondition();
+	private UniqueIdentifier lastIdentifier;
 
 	public UniqueIdentifier add(Identifier id, List<Object> content) {
 		lock.writeLock().lock();
@@ -35,6 +36,8 @@ public class Stream {
 			}
 
 			entries.add(new StreamEntry(unique, content));
+			lastIdentifier = unique;
+
 			newDataCondition.signalAll();
 
 			return unique;
@@ -99,7 +102,7 @@ public class Stream {
 
 	public List<StreamEntry> read(Identifier fromExclusive, Duration timeout) {
 		if (fromExclusive == null) {
-			fromExclusive = getIdentifier(System.currentTimeMillis());
+			fromExclusive = lastIdentifier;
 		} else {
 			final var results = read(fromExclusive);
 			if (!results.isEmpty()) {
@@ -117,7 +120,12 @@ public class Stream {
 	public boolean awaitNewData(Duration timeout) {
 		lock.writeLock().lock();
 		try {
-			return newDataCondition.await(timeout.toMillis(), TimeUnit.MILLISECONDS);
+			if (Duration.ZERO.equals(timeout)) {
+				newDataCondition.await();
+				return true;
+			} else {
+				return newDataCondition.await(timeout.toMillis(), TimeUnit.MILLISECONDS);
+			}
 		} catch (InterruptedException ignored) {
 			;
 		} finally {
