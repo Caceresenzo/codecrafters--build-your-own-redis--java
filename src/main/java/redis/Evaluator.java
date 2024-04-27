@@ -212,15 +212,19 @@ public class Evaluator {
 
 		return queries.stream()
 			.map((query) -> {
-				final var stream = (Stream) storage.get(query.key());
+				final var key = query.key();
+				final var stream = (Stream) storage.get(key);
 				final var entries = stream.read(query.identifier());
 
-				return entries.stream()
-					.map((entry) -> List.of(
-						new BulkString(entry.identifier().toString()),
-						entry.content()
-					))
-					.toList();
+				return List.of(
+					key,
+					entries.stream()
+						.map((entry) -> List.of(
+							new BulkString(entry.identifier().toString()),
+							entry.content()
+						))
+						.toList()
+				);
 			})
 			.toList();
 	}
