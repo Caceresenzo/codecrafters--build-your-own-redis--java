@@ -153,7 +153,7 @@ public class Evaluator {
 			}
 		);
 
-		return newIdReference.get().toString();
+		return new BulkString(newIdReference.get().toString());
 	}
 
 	private Object evaluateKeys(List<?> list) {
