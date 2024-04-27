@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public class Storage {
 
@@ -19,6 +21,23 @@ public class Storage {
 
 	public void put(String key, Cell<Object> cell) {
 		map.put(key, cell);
+	}
+
+	@SuppressWarnings("unchecked")
+	public <T> Cell<T> append(String key, Class<T> type, Supplier<Cell<T>> creator, Consumer<T> appender) {
+		return (Cell<T>) map.compute(key, (key_, cell) -> {
+			if (cell != null && (cell.isExpired() || !cell.isType(type))) {
+				cell = null;
+			}
+
+			if (cell == null) {
+				cell = (Cell<Object>) creator.get();
+			}
+
+			appender.accept((T) cell.value());
+
+			return cell;
+		});
 	}
 
 	public Object get(String key) {

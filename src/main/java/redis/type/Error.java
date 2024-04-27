@@ -5,6 +5,7 @@ import redis.serial.Protocol;
 public record Error(String message) {
 
 	private static final Error SYNTAX = new Error("ERR syntax error");
+	private static final Error XADD_ID_EQUAL_OR_SMALLER = new Error("ERR The ID specified in XADD is equal or smaller than the target stream top item");
 
 	public Error {
 		if (message.contains(Protocol.CRLF)) {
@@ -14,6 +15,10 @@ public record Error(String message) {
 
 	public static Error syntax() {
 		return SYNTAX;
+	}
+	
+	public static Error xaddIdEqualOrSmaller() {
+		return XADD_ID_EQUAL_OR_SMALLER;
 	}
 
 }

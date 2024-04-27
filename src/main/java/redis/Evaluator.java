@@ -3,13 +3,19 @@ package redis;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 import lombok.RequiredArgsConstructor;
 import redis.configuration.Configuration;
+import redis.store.Cell;
 import redis.store.Storage;
 import redis.type.BulkString;
 import redis.type.Error;
+import redis.type.ErrorException;
 import redis.type.Ok;
+import redis.type.stream.Stream;
+import redis.type.stream.identifier.Identifier;
+import redis.type.stream.identifier.UniqueIdentifier;
 
 @RequiredArgsConstructor
 public class Evaluator {
@@ -17,15 +23,20 @@ public class Evaluator {
 	private final Storage storage;
 	private final Configuration configurationStorage;
 
+	@SuppressWarnings("unchecked")
 	public Object evaluate(Object value) {
-		if (value instanceof List<?> list) {
-			return evaluate(list);
+		if (value instanceof List list) {
+			try {
+				return evaluate(list);
+			} catch (ErrorException exception) {
+				return exception.getError();
+			}
 		}
 
 		return new Error("ERR command be sent in an array");
 	}
 
-	private Object evaluate(List<?> arguments) {
+	private Object evaluate(List<Object> arguments) {
 		if (arguments.isEmpty()) {
 			return new Error("ERR command array is empty");
 		}
@@ -50,6 +61,10 @@ public class Evaluator {
 
 		if ("GET".equalsIgnoreCase(command)) {
 			return evaluateGet(arguments);
+		}
+
+		if ("XADD".equalsIgnoreCase(command)) {
+			return evaluateXAdd(arguments);
 		}
 
 		if ("KEYS".equalsIgnoreCase(command)) {
@@ -121,12 +136,32 @@ public class Evaluator {
 		return value;
 	}
 
+	private Object evaluateXAdd(List<Object> list) {
+		final var key = String.valueOf(list.get(1));
+		final var id = Identifier.parse(String.valueOf(list.get(2)));
+
+		final var keyValues = list.subList(2, list.size() - 1);
+
+		final var newIdReference = new AtomicReference<UniqueIdentifier>();
+		storage.append(
+			key,
+			Stream.class,
+			() -> Cell.with(new Stream()),
+			(stream) -> {
+				final var newId = stream.add(id, keyValues);
+				newIdReference.set(newId);
+			}
+		);
+
+		return newIdReference.get().toString();
+	}
+
 	private Object evaluateKeys(List<?> list) {
 		if (list.size() != 2) {
 			return new Error("ERR wrong number of arguments for 'keys' command");
 		}
 
-		final var pattern = String.valueOf(list.get(1));
+		// final var pattern = String.valueOf(list.get(1));
 
 		return storage.keys();
 	}
@@ -149,6 +184,10 @@ public class Evaluator {
 
 		if (value instanceof String) {
 			return "string";
+		}
+
+		if (value instanceof Stream) {
+			return "stream";
 		}
 
 		throw new IllegalStateException("unknown type: %s".formatted(value.getClass()));
