@@ -233,7 +233,7 @@ public class Evaluator {
 			final var entries = stream.read(query.identifier(), timeout);
 			
 			if (entries == null) {
-				return null;
+				return new BulkString(null);
 			}
 
 			return List.of(List.of(
