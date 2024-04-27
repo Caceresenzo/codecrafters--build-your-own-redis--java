@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import redis.type.Error;
-import redis.type.ErrorException;
 import redis.type.stream.identifier.Identifier;
 import redis.type.stream.identifier.MillisecondsIdentifier;
 import redis.type.stream.identifier.UniqueIdentifier;
@@ -22,7 +21,7 @@ public class Stream {
 		};
 
 		if (!isUnique(unique)) {
-			throw new ErrorException(Error.xaddIdEqualOrSmaller());
+			throw Error.xaddIdEqualOrSmaller().asException();
 		}
 
 		entries.add(new StreamEntry(unique, content));
@@ -44,9 +43,9 @@ public class Stream {
 
 	public boolean isUnique(UniqueIdentifier identifier) {
 		if (identifier.compareTo(UniqueIdentifier.MIN) < 0) {
-			return false;
+			throw Error.xaddIdGreater00().asException();
 		}
-		
+
 		if (entries.isEmpty()) {
 			return true;
 		}
