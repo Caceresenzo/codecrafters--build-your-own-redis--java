@@ -1,5 +1,6 @@
 package redis;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -188,10 +189,20 @@ public class Evaluator {
 		) {}
 
 		final var queries = new ArrayList<Query>();
+		Duration timeout = null;
 
 		final var size = list.size();
 		for (var index = 1; index < size; ++index) {
-			final var element = String.valueOf(list.get(index));
+			var element = String.valueOf(list.get(index));
+
+			if ("block".equalsIgnoreCase(element)) {
+				++index;
+
+				element = String.valueOf(list.get(index));
+				timeout = Duration.ofMillis(Long.parseLong(element));
+
+				continue;
+			}
 
 			if ("streams".equalsIgnoreCase(element)) {
 				++index;
@@ -201,13 +212,39 @@ public class Evaluator {
 
 				for (var jndex = 0; jndex < offset; ++jndex) {
 					final var key = String.valueOf(list.get(index + jndex));
-					final var identifier = Identifier.parse(String.valueOf(list.get(index + offset + jndex)));
+
+					element = String.valueOf(list.get(index + offset + jndex));
+					final var identifier = timeout != null && "$".equals(element)
+						? null
+						: Identifier.parse(String.valueOf(list.get(index + offset + jndex)));
 
 					queries.add(new Query(key, identifier));
 				}
 
 				break;
 			}
+		}
+
+		if (timeout != null) {
+			final var query = queries.getFirst();
+
+			final var key = query.key();
+			final var stream = (Stream) storage.get(key);
+			final var entries = stream.read(query.identifier(), timeout);
+			
+			if (entries == null) {
+				return null;
+			}
+
+			return List.of(List.of(
+				key,
+				entries.stream()
+					.map((entry) -> List.of(
+						new BulkString(entry.identifier().toString()),
+						entry.content()
+					))
+					.toList()
+			));
 		}
 
 		return queries.stream()
