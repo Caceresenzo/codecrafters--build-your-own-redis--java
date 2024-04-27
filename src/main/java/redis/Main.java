@@ -11,8 +11,6 @@ import redis.store.Storage;
 
 public class Main {
 
-	public static final int PORT = 6379;
-
 	public static void main(String[] args) throws IOException {
 		System.out.println("codecrafters build-your-own-redis");
 
@@ -42,7 +40,10 @@ public class Main {
 			}
 		}
 
-		try (final var serverSocket = new ServerSocket(PORT)) {
+		final var port = configuration.port().get();
+		System.out.println("port: %s".formatted(port));
+
+		try (final var serverSocket = new ServerSocket(port)) {
 			serverSocket.setReuseAddress(true);
 
 			while (true) {
