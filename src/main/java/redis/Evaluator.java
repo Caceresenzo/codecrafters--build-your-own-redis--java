@@ -145,7 +145,7 @@ public class Evaluator {
 		final var key = String.valueOf(list.get(1));
 		final var id = Identifier.parse(String.valueOf(list.get(2)));
 
-		final var keyValues = new ArrayList<>(list.subList(2, list.size() - 1));
+		final var keyValues = new ArrayList<>(list.subList(3, list.size()));
 
 		final var newIdReference = new AtomicReference<UniqueIdentifier>();
 		storage.append(
