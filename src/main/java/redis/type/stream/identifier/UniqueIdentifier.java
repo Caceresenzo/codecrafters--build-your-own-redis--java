@@ -6,6 +6,7 @@ public record UniqueIdentifier(
 ) implements Identifier, Comparable<Identifier> {
 
 	public static final UniqueIdentifier MIN = new UniqueIdentifier(0, 1);
+	public static final UniqueIdentifier MAX = new UniqueIdentifier(Long.MAX_VALUE, Long.MAX_VALUE);
 
 	@Override
 	public int compareTo(Identifier other) {

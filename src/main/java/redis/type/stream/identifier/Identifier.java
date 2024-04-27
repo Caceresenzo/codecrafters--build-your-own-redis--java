@@ -14,6 +14,14 @@ public sealed interface Identifier permits MillisecondsIdentifier, UniqueIdentif
 			return WildcardIdentifier.INSTANCE;
 		}
 
+		if ("-".equals(input)) {
+			return UniqueIdentifier.MIN;
+		}
+
+		if ("+".equals(input)) {
+			return UniqueIdentifier.MAX;
+		}
+
 		final var matcher = PATTERN.matcher(input);
 		if (!matcher.find()) {
 			throw new ErrorException(Error.streamIdInvalid());
