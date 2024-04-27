@@ -237,7 +237,7 @@ public class Evaluator {
 			}
 
 			return List.of(List.of(
-				key,
+				new BulkString(key),
 				entries.stream()
 					.map((entry) -> List.of(
 						new BulkString(entry.identifier().toString()),

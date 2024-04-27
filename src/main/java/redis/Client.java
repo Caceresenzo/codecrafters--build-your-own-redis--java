@@ -43,9 +43,11 @@ public class Client implements Runnable {
 			while ((value = deserializer.read()) != null) {
 				//				System.out.println(value);
 
+				System.out.println("%d: received: %s".formatted(id, value));
 				value = evaluator.evaluate(value);
 				//				System.out.println(value);
 
+				System.out.println("%d: answering: %s".formatted(id, value));
 				serializer.write(value);
 				outputStream.flush();
 			}
