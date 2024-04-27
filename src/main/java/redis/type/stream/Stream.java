@@ -37,9 +37,6 @@ public class Stream {
 		for (final var entry : entries) {
 			final var identifier = entry.identifier();
 
-			//			System.out.println("IN ?  identifier " + identifier + " from " + from + " compareTo " + identifier.compareTo(from));
-			//			System.out.println("OUT?  identifier " + identifier + " to " + to + " compareTo " + identifier.compareTo(to));
-
 			if (identifier.compareTo(to) > 0) {
 				break;
 			}
@@ -47,6 +44,25 @@ public class Stream {
 			if (collecting) {
 				result.add(entry);
 			} else if (identifier.compareTo(from) >= 0) {
+				collecting = true;
+				result.add(entry);
+			}
+		}
+
+		return result;
+	}
+
+	public synchronized List<StreamEntry> read(Identifier fromExclusive) {
+		final var result = new ArrayList<StreamEntry>();
+
+		var collecting = false;
+
+		for (final var entry : entries) {
+			final var identifier = entry.identifier();
+
+			if (collecting) {
+				result.add(entry);
+			} else if (identifier.compareTo(fromExclusive) > 0) {
 				collecting = true;
 				result.add(entry);
 			}

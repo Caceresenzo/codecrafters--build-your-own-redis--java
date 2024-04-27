@@ -72,6 +72,10 @@ public class Evaluator {
 			return evaluateXRange(arguments);
 		}
 
+		if ("XREAD".equalsIgnoreCase(command)) {
+			return evaluateXRead(arguments);
+		}
+
 		if ("KEYS".equalsIgnoreCase(command)) {
 			return evaluateKeys(arguments);
 		}
@@ -174,6 +178,50 @@ public class Evaluator {
 				new BulkString(entry.identifier().toString()),
 				entry.content()
 			))
+			.toList();
+	}
+
+	private Object evaluateXRead(List<Object> list) {
+		record Query(
+			String key,
+			Identifier identifier
+		) {}
+
+		final var queries = new ArrayList<Query>();
+
+		final var size = list.size();
+		for (var index = 1; index < size; ++index) {
+			final var element = String.valueOf(list.get(index));
+
+			if ("streams".equalsIgnoreCase(element)) {
+				++index;
+
+				final var remaining = size - index;
+				final var offset = remaining / 2;
+
+				for (var jndex = 0; jndex < offset; ++jndex) {
+					final var key = String.valueOf(list.get(index + jndex));
+					final var identifier = Identifier.parse(String.valueOf(list.get(index + offset + jndex)));
+
+					queries.add(new Query(key, identifier));
+				}
+
+				break;
+			}
+		}
+
+		return queries.stream()
+			.map((query) -> {
+				final var stream = (Stream) storage.get(query.key());
+				final var entries = stream.read(query.identifier());
+
+				return entries.stream()
+					.map((entry) -> List.of(
+						new BulkString(entry.identifier().toString()),
+						entry.content()
+					))
+					.toList();
+			})
 			.toList();
 	}
 
