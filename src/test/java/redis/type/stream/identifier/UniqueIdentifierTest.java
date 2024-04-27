@@ -8,6 +8,9 @@ class UniqueIdentifierTest {
 
 	@Test
 	void compareTo() {
+		assertEquals(-1, UniqueIdentifier.ZERO.compareTo(UniqueIdentifier.MIN));
+		assertEquals(1, UniqueIdentifier.MIN.compareTo(UniqueIdentifier.ZERO));
+
 		assertEquals(0, UniqueIdentifier.MIN.compareTo(UniqueIdentifier.MIN));
 		assertEquals(1, UniqueIdentifier.MIN.compareTo(new UniqueIdentifier(0, 0)));
 		assertEquals(1, new UniqueIdentifier(10, 0).compareTo(UniqueIdentifier.MIN));
