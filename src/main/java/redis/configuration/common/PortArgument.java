@@ -1,4 +1,6 @@
-package redis.configuration;
+package redis.configuration.common;
+
+import redis.configuration.Argument;
 
 public class PortArgument extends Argument<Integer> {
 

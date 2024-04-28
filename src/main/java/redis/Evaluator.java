@@ -313,7 +313,7 @@ public class Evaluator {
 		if ("GET".equalsIgnoreCase(action)) {
 			final var key = String.valueOf(list.get(2));
 
-			final var property = configurationStorage.getOption(key);
+			final var property = configurationStorage.option(key);
 			if (property == null) {
 				return Collections.emptyList();
 			}
@@ -331,10 +331,15 @@ public class Evaluator {
 		final var action = String.valueOf(list.get(1));
 
 		if ("REPLICATION".equalsIgnoreCase(action)) {
+			final var mode = configurationStorage.isSlave()
+				? "slave"
+				: "master";
+
 			return new BulkString("""
 				# Replication
-				role:master
-				""");
+				role:%s
+				""".formatted(mode)
+			);
 		}
 
 		return new BulkString("");

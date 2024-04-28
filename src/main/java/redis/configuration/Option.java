@@ -26,6 +26,10 @@ public class Option {
 		return (Argument<R>) arguments.get(index);
 	}
 
+	public List<Argument<?>> arguments() {
+		return arguments;
+	}
+
 	public int argumentsCount() {
 		return arguments.size();
 	}

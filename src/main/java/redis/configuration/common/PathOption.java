@@ -1,7 +1,10 @@
-package redis.configuration;
+package redis.configuration.common;
 
 import java.util.List;
 import java.util.function.Function;
+
+import redis.configuration.Argument;
+import redis.configuration.Option;
 
 public class PathOption extends Option {
 

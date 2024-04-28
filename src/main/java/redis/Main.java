@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.stream.Collectors;
 
 import redis.configuration.Configuration;
 import redis.rdb.RdbLoader;
@@ -21,7 +22,7 @@ public class Main {
 		for (var index = 0; index < args.length; ++index) {
 			final var key = args[index].substring(2);
 
-			final var option = configuration.getOption(key);
+			final var option = configuration.option(key);
 			if (option == null) {
 				System.err.println("unknown property: %s".formatted(key));
 				continue;
@@ -37,6 +38,17 @@ public class Main {
 
 			index += argumentsCount;
 		}
+
+		for (final var option : configuration.options()) {
+			final var arguments = option.arguments()
+				.stream()
+				.map((argument) -> "%s=`%s`".formatted(argument.name(), argument.get()))
+				.collect(Collectors.joining(", "));
+
+			System.out.println("configuration: %s(%s)".formatted(option.name(), arguments));
+		}
+
+		System.out.println("configuration: isSlave=%s".formatted(configuration.isSlave()));
 
 		final var directory = configuration.directory().pathArgument();
 		final var databaseFilename = configuration.databaseFilename().pathArgument();
