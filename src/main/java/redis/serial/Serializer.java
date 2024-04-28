@@ -22,18 +22,18 @@ public class Serializer {
 	public boolean write(Object value) throws IOException {
 		if (value instanceof String string) {
 			if (string.contains("\r\n")) {
-				return writeBulk(string.getBytes(), true);
+				return writeBulkString(string);
 			}
 
 			return writeSimpleString(string);
 		}
 
 		if (value instanceof BulkString string) {
-			return writeBulk(string.message().getBytes(), true);
+			return writeBulkString(string.message());
 		}
 
 		if (value instanceof BulkBlob string) {
-			return writeBulk(string.message(), false);
+			return writeBulkBytes(string.message());
 		}
 
 		if (value instanceof List<?> list) {
@@ -63,7 +63,18 @@ public class Serializer {
 		return true;
 	}
 
-	private boolean writeBulk(byte[] bytes, boolean includeFinalCrlf) throws IOException {
+	private boolean writeBulkString(String string) throws IOException {
+		if (string == null) {
+			return writeNullBulk();
+		}
+
+		writeBulkBytes(string.getBytes());
+		outputStream.write(CRLF_BYTES);
+
+		return true;
+	}
+
+	private boolean writeBulkBytes(byte[] bytes) throws IOException {
 		if (bytes == null) {
 			return writeNullBulk();
 		}
@@ -74,10 +85,6 @@ public class Serializer {
 		outputStream.write(CRLF_BYTES);
 
 		outputStream.write(bytes);
-
-		if (includeFinalCrlf) {
-			outputStream.write(CRLF_BYTES);
-		}
 
 		return true;
 	}
