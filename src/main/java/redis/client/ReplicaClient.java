@@ -51,7 +51,7 @@ public class ReplicaClient implements Runnable {
 					System.out.println("replica: answering: %s".formatted(answer));
 					
 					if (!answer.ignorableByReplica()) {
-						serializer.write(answer);
+						serializer.write(answer.value());
 					}
 				}
 
