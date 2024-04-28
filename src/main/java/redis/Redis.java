@@ -415,7 +415,7 @@ public class Redis {
 		final var numberOfReplicas = Integer.valueOf(String.valueOf(list.get(1)));
 		final var timeout = Integer.valueOf(String.valueOf(list.get(2)));
 
-		return 0;
+		return replicas.size();
 	}
 
 	public String getMasterReplicationId() {
