@@ -89,6 +89,10 @@ public class Evaluator {
 			return evaluateConfig(arguments);
 		}
 
+		if ("INFO".equalsIgnoreCase(command)) {
+			return evaluateInfo(arguments);
+		}
+
 		return new Error("ERR unknown '%s' command".formatted(command));
 	}
 
@@ -231,7 +235,7 @@ public class Evaluator {
 			final var key = query.key();
 			final var stream = (Stream) storage.get(key);
 			final var entries = stream.read(query.identifier(), timeout);
-			
+
 			if (entries == null) {
 				return new BulkString(null);
 			}
@@ -321,6 +325,19 @@ public class Evaluator {
 		}
 
 		return new Error("ERR unknown subcommand '%s'. Try CONFIG HELP.".formatted(action));
+	}
+
+	private Object evaluateInfo(List<?> list) {
+		final var action = String.valueOf(list.get(1));
+
+		if ("REPLICATION".equalsIgnoreCase(action)) {
+			return new BulkString("""
+				# Replication
+				role:master
+				""");
+		}
+
+		return new BulkString("");
 	}
 
 }
