@@ -63,10 +63,7 @@ public class Redis {
 		}
 
 		if ("PING".equalsIgnoreCase(command)) {
-			final var response = new Payload(evaluatePing(arguments));
-			progagate(arguments);
-
-			return Collections.singletonList(response);
+			return Collections.singletonList(new Payload(evaluatePing(arguments)));
 		}
 
 		if ("ECHO".equalsIgnoreCase(command)) {
