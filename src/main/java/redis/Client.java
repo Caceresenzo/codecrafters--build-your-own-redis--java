@@ -37,18 +37,18 @@ public class Client implements Runnable {
 
 			final var deserializer = new Deserializer(inputStream);
 			final var serializer = new Serializer(outputStream);
-			final var evaluator = new Evaluator(storage, configurationStorage);
+			final var evaluator = new Redis(storage, configurationStorage);
 
-			Object value;
-			while ((value = deserializer.read()) != null) {
-				//				System.out.println(value);
+			Object request;
+			while ((request = deserializer.read()) != null) {
+				System.out.println("%d: received: %s".formatted(id, request));
+				final var values = evaluator.evaluate(request);
 
-				System.out.println("%d: received: %s".formatted(id, value));
-				value = evaluator.evaluate(value);
-				//				System.out.println(value);
+				for (var answer : values) {
+					System.out.println("%d: answering: %s".formatted(id, answer));
+					serializer.write(answer);
+				}
 
-				System.out.println("%d: answering: %s".formatted(id, value));
-				serializer.write(value);
 				outputStream.flush();
 			}
 

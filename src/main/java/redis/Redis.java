@@ -3,6 +3,7 @@ package redis;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -11,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import redis.configuration.Configuration;
 import redis.store.Cell;
 import redis.store.Storage;
+import redis.type.BulkBlob;
 import redis.type.BulkString;
 import redis.type.Error;
 import redis.type.ErrorException;
@@ -20,89 +22,89 @@ import redis.type.stream.identifier.Identifier;
 import redis.type.stream.identifier.UniqueIdentifier;
 
 @RequiredArgsConstructor
-public class Evaluator {
+public class Redis {
 
 	private final Storage storage;
 	private final Configuration configurationStorage;
 	private long masterReplicationOffset = 0;
 
 	@SuppressWarnings("unchecked")
-	public Object evaluate(Object value) {
+	public List<Object> evaluate(Object value) {
 		if (value instanceof List list) {
 			try {
 				return evaluate(list);
 			} catch (ErrorException exception) {
-				return exception.getError();
+				return List.of(exception.getError());
 			}
 		}
 
-		return new Error("ERR command be sent in an array");
+		return List.of(new Error("ERR command be sent in an array"));
 	}
 
-	private Object evaluate(List<Object> arguments) {
+	private List<Object> evaluate(List<Object> arguments) {
 		if (arguments.isEmpty()) {
-			return new Error("ERR command array is empty");
+			return List.of(new Error("ERR command array is empty"));
 		}
 
 		final var command = String.valueOf(arguments.getFirst());
 
 		if ("COMMAND".equalsIgnoreCase(command)) {
-			return evaluateCommand(arguments);
+			return Collections.singletonList(evaluateCommand(arguments));
 		}
 
 		if ("PING".equalsIgnoreCase(command)) {
-			return evaluatePing(arguments);
+			return Collections.singletonList(evaluatePing(arguments));
 		}
 
 		if ("ECHO".equalsIgnoreCase(command)) {
-			return evaluateEcho(arguments);
+			return Collections.singletonList(evaluateEcho(arguments));
 		}
 
 		if ("SET".equalsIgnoreCase(command)) {
-			return evaluateSet(arguments);
+			return Collections.singletonList(evaluateSet(arguments));
 		}
 
 		if ("GET".equalsIgnoreCase(command)) {
-			return evaluateGet(arguments);
+			return Collections.singletonList(evaluateGet(arguments));
 		}
 
 		if ("XADD".equalsIgnoreCase(command)) {
-			return evaluateXAdd(arguments);
+			return Collections.singletonList(evaluateXAdd(arguments));
 		}
 
 		if ("XRANGE".equalsIgnoreCase(command)) {
-			return evaluateXRange(arguments);
+			return Collections.singletonList(evaluateXRange(arguments));
 		}
 
 		if ("XREAD".equalsIgnoreCase(command)) {
-			return evaluateXRead(arguments);
+			return Collections.singletonList(evaluateXRead(arguments));
 		}
 
 		if ("KEYS".equalsIgnoreCase(command)) {
-			return evaluateKeys(arguments);
+			return Collections.singletonList(evaluateKeys(arguments));
 		}
 
 		if ("TYPE".equalsIgnoreCase(command)) {
-			return evaluateType(arguments);
+			return Collections.singletonList(evaluateType(arguments));
 		}
 
 		if ("CONFIG".equalsIgnoreCase(command)) {
-			return evaluateConfig(arguments);
+			return Collections.singletonList(evaluateConfig(arguments));
 		}
 
 		if ("INFO".equalsIgnoreCase(command)) {
-			return evaluateInfo(arguments);
+			return Collections.singletonList(evaluateInfo(arguments));
 		}
 
 		if ("REPLCONF".equalsIgnoreCase(command)) {
-			return evaluateReplicaConfig(arguments);
+			return Collections.singletonList(evaluateReplicaConfig(arguments));
 		}
 
 		if ("PSYNC".equalsIgnoreCase(command)) {
 			return evaluatePSync(arguments);
 		}
 
-		return new Error("ERR unknown '%s' command".formatted(command));
+		return List.of(new Error("ERR unknown '%s' command".formatted(command)));
 	}
 
 	private Object evaluateCommand(List<?> list) {
@@ -364,8 +366,11 @@ public class Evaluator {
 		return "OK";
 	}
 
-	private Object evaluatePSync(List<?> list) {
-		return "FULLRESYNC %s 0".formatted(getMasterReplicationId());
+	private List<Object> evaluatePSync(List<?> list) {
+		return List.of(
+			"FULLRESYNC %s 0".formatted(getMasterReplicationId()),
+			new BulkBlob(Base64.getDecoder().decode("UkVESVMwMDEx+glyZWRpcy12ZXIFNy4yLjD6CnJlZGlzLWJpdHPAQPoFY3RpbWXCbQi8ZfoIdXNlZC1tZW3CsMQQAPoIYW9mLWJhc2XAAP/wbjv+wP9aog=="))
+		);
 	}
 
 	public String getMasterReplicationId() {

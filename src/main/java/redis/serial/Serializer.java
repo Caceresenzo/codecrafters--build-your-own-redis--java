@@ -5,6 +5,7 @@ import java.io.OutputStream;
 import java.util.List;
 
 import lombok.RequiredArgsConstructor;
+import redis.type.BulkBlob;
 import redis.type.BulkString;
 import redis.type.Error;
 import redis.type.Ok;
@@ -21,14 +22,18 @@ public class Serializer {
 	public boolean write(Object value) throws IOException {
 		if (value instanceof String string) {
 			if (string.contains("\r\n")) {
-				return writeBulkString(string);
+				return writeBulk(string.getBytes(), true);
 			}
 
 			return writeSimpleString(string);
 		}
 
 		if (value instanceof BulkString string) {
-			return writeBulkString(string.message());
+			return writeBulk(string.message().getBytes(), true);
+		}
+
+		if (value instanceof BulkBlob string) {
+			return writeBulk(string.message(), false);
 		}
 
 		if (value instanceof List<?> list) {
@@ -58,22 +63,26 @@ public class Serializer {
 		return true;
 	}
 
-	private boolean writeBulkString(String string) throws IOException {
-		if (string == null) {
-			return writeNullBulkString();
+	private boolean writeBulk(byte[] bytes, boolean includeFinalCrlf) throws IOException {
+		if (bytes == null) {
+			return writeNullBulk();
 		}
 
 		outputStream.write(Protocol.BULK_STRING);
-		outputStream.write(String.valueOf(string.length()).getBytes());
+
+		outputStream.write(String.valueOf(bytes.length).getBytes());
 		outputStream.write(CRLF_BYTES);
 
-		outputStream.write(string.getBytes());
-		outputStream.write(CRLF_BYTES);
+		outputStream.write(bytes);
+
+		if (includeFinalCrlf) {
+			outputStream.write(CRLF_BYTES);
+		}
 
 		return true;
 	}
 
-	private boolean writeNullBulkString() throws IOException {
+	private boolean writeNullBulk() throws IOException {
 		outputStream.write(Protocol.BULK_STRING);
 		outputStream.write(MINUS_ONE_BYTES);
 		outputStream.write(CRLF_BYTES);

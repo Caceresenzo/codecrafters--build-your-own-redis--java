@@ -18,16 +18,19 @@ public class Deserializer {
 			return null;
 		}
 
-		//		System.out.print((char) first);
-		//		while (true) {
-		//			System.out.print((char) inputStream.read());
-		//		}
 		return switch (first) {
 			case Protocol.ARRAY -> parseArray();
 			case Protocol.SIMPLE_STRING -> parseString();
 			case Protocol.BULK_STRING -> parseBulkString();
 
-			default -> throw new IllegalArgumentException("Unexpected value: %s (%s)".formatted(first, (char) first));
+			default -> {
+				//				System.out.print((char) first);
+				//				while (true) {
+				//					System.out.print((char) inputStream.read());
+				//				}
+
+				throw new IllegalArgumentException("Unexpected value: %s (%s)".formatted(first, (char) first));
+			}
 		};
 	}
 
