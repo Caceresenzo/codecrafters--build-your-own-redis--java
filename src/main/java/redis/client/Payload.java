@@ -9,4 +9,8 @@ public record Payload(
 		this(value, true);
 	}
 
+	public String toString() {
+		return "{%s, ignorable?=%s}".formatted(value, ignorableByReplica);
+	}
+
 }
