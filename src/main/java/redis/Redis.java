@@ -117,6 +117,10 @@ public class Redis {
 			return evaluatePSync(client, arguments);
 		}
 
+		if ("WAIT".equalsIgnoreCase(command)) {
+			return Collections.singletonList(new Payload(evaluateWait(arguments)));
+		}
+
 		return List.of(new Payload(new Error("ERR unknown '%s' command".formatted(command))));
 	}
 
@@ -405,6 +409,13 @@ public class Redis {
 		client.command(new Payload(new BulkBlob(Base64.getDecoder().decode("UkVESVMwMDEx+glyZWRpcy12ZXIFNy4yLjD6CnJlZGlzLWJpdHPAQPoFY3RpbWXCbQi8ZfoIdXNlZC1tZW3CsMQQAPoIYW9mLWJhc2XAAP/wbjv+wP9aog=="))));
 
 		return null;
+	}
+
+	private Object evaluateWait(List<?> list) {
+		final var numberOfReplicas = Integer.valueOf(String.valueOf(list.get(1)));
+		final var timeout = Integer.valueOf(String.valueOf(list.get(2)));
+
+		return 0;
 	}
 
 	public String getMasterReplicationId() {

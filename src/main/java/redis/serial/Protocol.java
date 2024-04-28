@@ -9,6 +9,7 @@ public class Protocol {
 	public static final char NULL = '_';
 	public static final char SIMPLE_STRING = '+';
 	public static final char SIMPLE_ERROR = '-';
+	public static final char INTEGER = ':';
 	public static final char BULK_STRING = '$';
 
 	public static final String CRLF = "\r\n";

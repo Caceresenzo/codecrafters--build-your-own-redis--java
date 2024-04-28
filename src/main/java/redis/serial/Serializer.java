@@ -32,6 +32,10 @@ public class Serializer {
 			return writeSimpleString(string);
 		}
 
+		if (value instanceof Integer integer) {
+			return writeSimpleInteger(integer);
+		}
+
 		if (value instanceof BulkString string) {
 			return writeBulkString(string.message());
 		}
@@ -62,6 +66,14 @@ public class Serializer {
 	private boolean writeSimpleString(String string) throws IOException {
 		outputStream.write(Protocol.SIMPLE_STRING);
 		outputStream.write(string.getBytes());
+		outputStream.write(CRLF_BYTES);
+
+		return true;
+	}
+
+	private boolean writeSimpleInteger(Integer integer) throws IOException {
+		outputStream.write(Protocol.INTEGER);
+		outputStream.write(String.valueOf(integer).getBytes());
 		outputStream.write(CRLF_BYTES);
 
 		return true;
