@@ -98,6 +98,10 @@ public class Evaluator {
 			return evaluateReplicaConfig(arguments);
 		}
 
+		if ("PSYNC".equalsIgnoreCase(command)) {
+			return evaluatePSync(arguments);
+		}
+
 		return new Error("ERR unknown '%s' command".formatted(command));
 	}
 
@@ -358,6 +362,10 @@ public class Evaluator {
 
 	private Object evaluateReplicaConfig(List<?> list) {
 		return "OK";
+	}
+
+	private Object evaluatePSync(List<?> list) {
+		return "FULLRESYNC %s 0".formatted(getMasterReplicationId());
 	}
 
 	public String getMasterReplicationId() {
