@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import lombok.Getter;
@@ -30,13 +31,13 @@ public class Redis {
 	private final @Getter Storage storage;
 	private final @Getter Configuration configuration;
 	private final List<Client> replicas = Collections.synchronizedList(new ArrayList<>());
-	private long replicationOffset = 0;
+	private AtomicLong replicationOffset = new AtomicLong();
 
 	@SuppressWarnings("unchecked")
-	public List<Payload> evaluate(Client client, Object value) {
+	public List<Payload> evaluate(Client client, Object value, long read) {
 		if (value instanceof List list) {
 			try {
-				return evaluate(client, list);
+				return evaluate(client, list, read);
 			} catch (ErrorException exception) {
 				return List.of(new Payload(exception.getError()));
 			}
@@ -45,7 +46,10 @@ public class Redis {
 		return List.of(new Payload(new Error("ERR command be sent in an array")));
 	}
 
-	private List<Payload> evaluate(Client client, List<Object> arguments) {
+	private List<Payload> evaluate(Client client, List<Object> arguments, long read) {
+		final var offset = replicationOffset.addAndGet(read);
+		System.out.println("offset: %s".formatted(offset));
+
 		if (arguments.isEmpty()) {
 			return List.of(new Payload(new Error("ERR command array is empty")));
 		}
@@ -57,7 +61,10 @@ public class Redis {
 		}
 
 		if ("PING".equalsIgnoreCase(command)) {
-			return Collections.singletonList(new Payload(evaluatePing(arguments)));
+			final var response = new Payload(evaluatePing(arguments));
+			progagate(arguments, read);
+
+			return Collections.singletonList(response);
 		}
 
 		if ("ECHO".equalsIgnoreCase(command)) {
@@ -65,7 +72,10 @@ public class Redis {
 		}
 
 		if ("SET".equalsIgnoreCase(command)) {
-			return Collections.singletonList(new Payload(evaluateSet(arguments)));
+			final var response = new Payload(evaluateSet(arguments));
+			progagate(arguments, read);
+
+			return Collections.singletonList(response);
 		}
 
 		if ("GET".equalsIgnoreCase(command)) {
@@ -147,7 +157,6 @@ public class Redis {
 			storage.set(key, value);
 		}
 
-		progagate(new Payload(list));
 		return Ok.INSTANCE;
 	}
 
@@ -403,12 +412,17 @@ public class Redis {
 		return configuration.masterReplicationId().argument(0, String.class).get();
 	}
 
-	public void progagate(Payload payload) {
+	public void progagate(List<Object> command, long read) {
+		final var payload = new Payload(
+			command.stream()
+				.map(String::valueOf)
+				.map(BulkString::new)
+				.toList()
+		);
+
 		replicas.forEach((client) -> {
 			client.command(payload);
 		});
-
-		++replicationOffset;
 	}
 
 }

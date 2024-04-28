@@ -8,13 +8,16 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
+import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import redis.Redis;
 import redis.serial.Deserializer;
 import redis.serial.Serializer;
+import redis.util.TrackedInputStream;
 
 public class Client implements Runnable {
 
@@ -26,6 +29,7 @@ public class Client implements Runnable {
 	private boolean connected;
 	private Consumer<Client> disconnectListener;
 	private @Setter boolean replicate;
+	private @Getter AtomicLong replicationOffset = new AtomicLong();
 	private final BlockingQueue<Payload> pendingCommands = new ArrayBlockingQueue<>(128, true);
 
 	public Client(Socket socket, Redis evaluator) throws IOException {
@@ -41,16 +45,24 @@ public class Client implements Runnable {
 		System.out.println("%d: connected".formatted(id));
 
 		try (socket) {
-			final var inputStream = new BufferedInputStream(socket.getInputStream());
+			final var inputStream = new TrackedInputStream(new BufferedInputStream(socket.getInputStream()));
 			final var outputStream = new BufferedOutputStream(socket.getOutputStream());
 
 			final var deserializer = new Deserializer(inputStream);
 			final var serializer = new Serializer(outputStream);
 
-			Object request;
-			while (!replicate && (request = deserializer.read()) != null) {
-				System.out.println("%d: received: %s".formatted(id, request));
-				final var values = evaluator.evaluate(this, request);
+			while (!replicate) {
+				inputStream.begin();
+
+				final var request = deserializer.read();
+				if (request == null) {
+					break;
+				}
+				
+				final var read = inputStream.count();
+
+				System.out.println("%d: received (%d): %s".formatted(id, read, request));
+				final var values = evaluator.evaluate(this, request, read);
 
 				if (values == null) {
 					System.out.println("%d: no answer".formatted(id));

@@ -11,12 +11,14 @@ import redis.rdb.RdbLoader;
 import redis.serial.Deserializer;
 import redis.serial.Serializer;
 import redis.type.BulkString;
+import redis.util.TrackedInputStream;
 
 public class ReplicaClient implements Runnable {
 
 	private final Socket socket;
 	private final Redis redis;
 
+	private final TrackedInputStream inputStream;
 	private final Deserializer deserializer;
 	private final Serializer serializer;
 
@@ -24,7 +26,7 @@ public class ReplicaClient implements Runnable {
 		this.socket = socket;
 		this.redis = redis;
 
-		final var inputStream = socket.getInputStream();
+		inputStream = new TrackedInputStream(socket.getInputStream());
 		final var outputStream = socket.getOutputStream();
 
 		deserializer = new Deserializer(inputStream);
@@ -37,10 +39,18 @@ public class ReplicaClient implements Runnable {
 		try (socket) {
 			handshake(deserializer, serializer);
 
-			Object request;
-			while ((request = deserializer.read()) != null) {
-				System.out.println("replica: received: %s".formatted(request));
-				final var values = redis.evaluate(null, request);
+			while (true) {
+				inputStream.begin();
+				
+				final var request = deserializer.read();
+				if (request == null) {
+					break;
+				}
+
+				final var read = inputStream.count();
+
+				System.out.println("replica: received (%s): %s".formatted(read, request));
+				final var values = redis.evaluate(null, request, read);
 
 				if (values == null) {
 					System.out.println("replica: no answer");
@@ -49,7 +59,7 @@ public class ReplicaClient implements Runnable {
 
 				for (var answer : values) {
 					System.out.println("replica: answering: %s".formatted(answer));
-					
+
 					if (!answer.ignorableByReplica()) {
 						serializer.write(answer.value());
 					}
