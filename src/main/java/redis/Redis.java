@@ -64,7 +64,7 @@ public class Redis {
 
 		if ("PING".equalsIgnoreCase(command)) {
 			final var response = new Payload(evaluatePing(arguments));
-			progagate(arguments, read);
+			progagate(arguments);
 
 			return Collections.singletonList(response);
 		}
@@ -75,7 +75,7 @@ public class Redis {
 
 		if ("SET".equalsIgnoreCase(command)) {
 			final var response = new Payload(evaluateSet(arguments));
-			progagate(arguments, read);
+			progagate(arguments);
 
 			return Collections.singletonList(response);
 		}
@@ -414,7 +414,7 @@ public class Redis {
 		return configuration.masterReplicationId().argument(0, String.class).get();
 	}
 
-	public void progagate(List<Object> command, long read) {
+	public void progagate(List<Object> command) {
 		final var payload = new Payload(
 			command.stream()
 				.map(String::valueOf)
