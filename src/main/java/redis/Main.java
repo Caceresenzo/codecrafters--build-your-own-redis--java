@@ -141,6 +141,18 @@ public class Main {
 				final var response = deserializer.read();
 				System.out.println("replica: received %s".formatted(response));
 			}
+			
+			{
+				System.out.println("replica: send PSYNC ? -1");
+				serializer.write(List.of(
+					new BulkString("PSYNC"),
+					new BulkString("?"),
+					new BulkString("-1")
+					));
+				
+				final var response = deserializer.read();
+				System.out.println("replica: received %s".formatted(response));
+			}
 		}
 	}
 
