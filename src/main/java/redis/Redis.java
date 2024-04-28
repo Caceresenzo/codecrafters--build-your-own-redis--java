@@ -35,21 +35,23 @@ public class Redis {
 
 	@SuppressWarnings("unchecked")
 	public List<Payload> evaluate(Client client, Object value, long read) {
-		if (value instanceof List list) {
-			try {
-				return evaluate(client, list, read);
-			} catch (ErrorException exception) {
-				return List.of(new Payload(exception.getError()));
+		try {
+			if (value instanceof List list) {
+				try {
+					return evaluate(client, list, read);
+				} catch (ErrorException exception) {
+					return List.of(new Payload(exception.getError()));
+				}
 			}
-		}
 
-		return List.of(new Payload(new Error("ERR command be sent in an array")));
+			return List.of(new Payload(new Error("ERR command be sent in an array")));
+		} finally {
+			final var offset = replicationOffset.addAndGet(read);
+			System.out.println("offset: %s".formatted(offset));
+		}
 	}
 
 	private List<Payload> evaluate(Client client, List<Object> arguments, long read) {
-		final var offset = replicationOffset.addAndGet(read);
-		System.out.println("offset: %s".formatted(offset));
-
 		if (arguments.isEmpty()) {
 			return List.of(new Payload(new Error("ERR command array is empty")));
 		}
