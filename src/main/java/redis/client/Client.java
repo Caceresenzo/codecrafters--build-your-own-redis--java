@@ -26,7 +26,7 @@ public class Client implements Runnable {
 	private boolean connected;
 	private Consumer<Client> disconnectListener;
 	private @Setter boolean replicate;
-	private final BlockingQueue<Object> pendingCommands = new ArrayBlockingQueue<>(128, true);
+	private final BlockingQueue<Payload> pendingCommands = new ArrayBlockingQueue<>(128, true);
 
 	public Client(Socket socket, Redis evaluator) throws IOException {
 		this.id = ID_INCREMENT.incrementAndGet();
@@ -59,7 +59,7 @@ public class Client implements Runnable {
 
 				for (var answer : values) {
 					System.out.println("%d: answering: %s".formatted(id, answer));
-					serializer.write(answer);
+					serializer.write(answer.value());
 				}
 
 				outputStream.flush();
@@ -74,7 +74,7 @@ public class Client implements Runnable {
 				System.out.println("%d: send command: %s".formatted(id, command));
 
 				if (socket.isConnected()) {
-					serializer.write(command);
+					serializer.write(command.value());
 					outputStream.flush();
 				}
 			}
@@ -94,7 +94,7 @@ public class Client implements Runnable {
 		}
 	}
 
-	public void command(Object value) {
+	public void command(Payload value) {
 		System.out.println("%d: queue command: %s".formatted(id, value));
 		pendingCommands.add(value);
 	}

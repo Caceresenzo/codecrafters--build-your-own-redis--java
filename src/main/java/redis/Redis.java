@@ -11,6 +11,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import redis.client.Client;
+import redis.client.Payload;
 import redis.configuration.Configuration;
 import redis.store.Cell;
 import redis.store.Storage;
@@ -29,74 +30,74 @@ public class Redis {
 	private final @Getter Storage storage;
 	private final @Getter Configuration configuration;
 	private final List<Client> replicas = Collections.synchronizedList(new ArrayList<>());
-	private long masterReplicationOffset = 0;
+	private long replicationOffset = 0;
 
 	@SuppressWarnings("unchecked")
-	public List<Object> evaluate(Client client, Object value) {
+	public List<Payload> evaluate(Client client, Object value) {
 		if (value instanceof List list) {
 			try {
 				return evaluate(client, list);
 			} catch (ErrorException exception) {
-				return List.of(exception.getError());
+				return List.of(new Payload(exception.getError()));
 			}
 		}
 
-		return List.of(new Error("ERR command be sent in an array"));
+		return List.of(new Payload(new Error("ERR command be sent in an array")));
 	}
 
-	private List<Object> evaluate(Client client, List<Object> arguments) {
+	private List<Payload> evaluate(Client client, List<Object> arguments) {
 		if (arguments.isEmpty()) {
-			return List.of(new Error("ERR command array is empty"));
+			return List.of(new Payload(new Error("ERR command array is empty")));
 		}
 
 		final var command = String.valueOf(arguments.getFirst());
 
 		if ("COMMAND".equalsIgnoreCase(command)) {
-			return Collections.singletonList(evaluateCommand(arguments));
+			return Collections.singletonList(new Payload(evaluateCommand(arguments)));
 		}
 
 		if ("PING".equalsIgnoreCase(command)) {
-			return Collections.singletonList(evaluatePing(arguments));
+			return Collections.singletonList(new Payload(evaluatePing(arguments)));
 		}
 
 		if ("ECHO".equalsIgnoreCase(command)) {
-			return Collections.singletonList(evaluateEcho(arguments));
+			return Collections.singletonList(new Payload(evaluateEcho(arguments)));
 		}
 
 		if ("SET".equalsIgnoreCase(command)) {
-			return Collections.singletonList(evaluateSet(arguments));
+			return Collections.singletonList(new Payload(evaluateSet(arguments)));
 		}
 
 		if ("GET".equalsIgnoreCase(command)) {
-			return Collections.singletonList(evaluateGet(arguments));
+			return Collections.singletonList(new Payload(evaluateGet(arguments)));
 		}
 
 		if ("XADD".equalsIgnoreCase(command)) {
-			return Collections.singletonList(evaluateXAdd(arguments));
+			return Collections.singletonList(new Payload(evaluateXAdd(arguments)));
 		}
 
 		if ("XRANGE".equalsIgnoreCase(command)) {
-			return Collections.singletonList(evaluateXRange(arguments));
+			return Collections.singletonList(new Payload(evaluateXRange(arguments)));
 		}
 
 		if ("XREAD".equalsIgnoreCase(command)) {
-			return Collections.singletonList(evaluateXRead(arguments));
+			return Collections.singletonList(new Payload(evaluateXRead(arguments)));
 		}
 
 		if ("KEYS".equalsIgnoreCase(command)) {
-			return Collections.singletonList(evaluateKeys(arguments));
+			return Collections.singletonList(new Payload(evaluateKeys(arguments)));
 		}
 
 		if ("TYPE".equalsIgnoreCase(command)) {
-			return Collections.singletonList(evaluateType(arguments));
+			return Collections.singletonList(new Payload(evaluateType(arguments)));
 		}
 
 		if ("CONFIG".equalsIgnoreCase(command)) {
-			return Collections.singletonList(evaluateConfig(arguments));
+			return Collections.singletonList(new Payload(evaluateConfig(arguments)));
 		}
 
 		if ("INFO".equalsIgnoreCase(command)) {
-			return Collections.singletonList(evaluateInfo(arguments));
+			return Collections.singletonList(new Payload(evaluateInfo(arguments)));
 		}
 
 		if ("REPLCONF".equalsIgnoreCase(command)) {
@@ -107,7 +108,7 @@ public class Redis {
 			return evaluatePSync(client, arguments);
 		}
 
-		return List.of(new Error("ERR unknown '%s' command".formatted(command)));
+		return List.of(new Payload(new Error("ERR unknown '%s' command".formatted(command))));
 	}
 
 	private Object evaluateCommand(List<?> list) {
@@ -146,7 +147,7 @@ public class Redis {
 			storage.set(key, value);
 		}
 
-		progagate(list);
+		progagate(new Payload(list));
 		return Ok.INSTANCE;
 	}
 
@@ -358,7 +359,7 @@ public class Redis {
 				""".formatted(
 				mode,
 				getMasterReplicationId(),
-				masterReplicationOffset
+				replicationOffset
 			)
 			);
 		}
@@ -366,21 +367,34 @@ public class Redis {
 		return new BulkString("");
 	}
 
-	private Object evaluateReplicaConfig(List<?> list) {
-		return Ok.INSTANCE;
+	private Payload evaluateReplicaConfig(List<?> list) {
+		final var action = String.valueOf(list.get(1));
+
+		if ("GETACK".equalsIgnoreCase(action)) {
+			return new Payload(
+				List.of(
+					new BulkString("REPLCONF"),
+					new BulkString("ACK"),
+					new BulkString(String.valueOf(replicationOffset))
+				),
+				false
+			);
+		}
+
+		return new Payload(Ok.INSTANCE);
 	}
 
-	private List<Object> evaluatePSync(Client client, List<?> list) {
+	private List<Payload> evaluatePSync(Client client, List<?> list) {
 		client.setReplicate(true);
 
 		replicas.add(client);
 		if (!client.onDisconnect(replicas::remove)) {
 			replicas.remove(client);
-			return List.of(new Error("ERR could not enable replica"));
+			return List.of(new Payload(new Error("ERR could not enable replica")));
 		}
 
-		client.command("FULLRESYNC %s 0".formatted(getMasterReplicationId()));
-		client.command(new BulkBlob(Base64.getDecoder().decode("UkVESVMwMDEx+glyZWRpcy12ZXIFNy4yLjD6CnJlZGlzLWJpdHPAQPoFY3RpbWXCbQi8ZfoIdXNlZC1tZW3CsMQQAPoIYW9mLWJhc2XAAP/wbjv+wP9aog==")));
+		client.command(new Payload("FULLRESYNC %s 0".formatted(getMasterReplicationId())));
+		client.command(new Payload(new BulkBlob(Base64.getDecoder().decode("UkVESVMwMDEx+glyZWRpcy12ZXIFNy4yLjD6CnJlZGlzLWJpdHPAQPoFY3RpbWXCbQi8ZfoIdXNlZC1tZW3CsMQQAPoIYW9mLWJhc2XAAP/wbjv+wP9aog=="))));
 
 		return null;
 	}
@@ -389,10 +403,12 @@ public class Redis {
 		return configuration.masterReplicationId().argument(0, String.class).get();
 	}
 
-	public void progagate(List<?> command) {
+	public void progagate(Payload payload) {
 		replicas.forEach((client) -> {
-			client.command(command);
+			client.command(payload);
 		});
+
+		++replicationOffset;
 	}
 
 }
