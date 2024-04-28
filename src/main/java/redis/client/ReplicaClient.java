@@ -48,8 +48,8 @@ public class ReplicaClient implements Runnable {
 				}
 
 				for (var answer : values) {
-					System.out.println("replica: answering: %s".formatted(answer));
-					serializer.write(answer);
+					System.out.println("replica: slient answering: %s".formatted(answer));
+					//	serializer.write(answer);
 				}
 
 				serializer.flush();
