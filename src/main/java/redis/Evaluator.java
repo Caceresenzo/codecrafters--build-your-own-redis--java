@@ -94,6 +94,10 @@ public class Evaluator {
 			return evaluateInfo(arguments);
 		}
 
+		if ("REPLCONF".equalsIgnoreCase(command)) {
+			return evaluateReplicaConfig(arguments);
+		}
+
 		return new Error("ERR unknown '%s' command".formatted(command));
 	}
 
@@ -350,6 +354,10 @@ public class Evaluator {
 		}
 
 		return new BulkString("");
+	}
+
+	private Object evaluateReplicaConfig(List<?> list) {
+		return "OK";
 	}
 
 	public String getMasterReplicationId() {
