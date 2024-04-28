@@ -8,7 +8,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import redis.client.Client;
 import redis.configuration.Configuration;
 import redis.store.Cell;
 import redis.store.Storage;
@@ -24,15 +26,16 @@ import redis.type.stream.identifier.UniqueIdentifier;
 @RequiredArgsConstructor
 public class Redis {
 
-	private final Storage storage;
-	private final Configuration configurationStorage;
+	private final @Getter Storage storage;
+	private final @Getter Configuration configuration;
+	private final List<Client> replicas = Collections.synchronizedList(new ArrayList<>());
 	private long masterReplicationOffset = 0;
 
 	@SuppressWarnings("unchecked")
-	public List<Object> evaluate(Object value) {
+	public List<Object> evaluate(Client client, Object value) {
 		if (value instanceof List list) {
 			try {
-				return evaluate(list);
+				return evaluate(client, list);
 			} catch (ErrorException exception) {
 				return List.of(exception.getError());
 			}
@@ -41,7 +44,7 @@ public class Redis {
 		return List.of(new Error("ERR command be sent in an array"));
 	}
 
-	private List<Object> evaluate(List<Object> arguments) {
+	private List<Object> evaluate(Client client, List<Object> arguments) {
 		if (arguments.isEmpty()) {
 			return List.of(new Error("ERR command array is empty"));
 		}
@@ -101,7 +104,7 @@ public class Redis {
 		}
 
 		if ("PSYNC".equalsIgnoreCase(command)) {
-			return evaluatePSync(arguments);
+			return evaluatePSync(client, arguments);
 		}
 
 		return List.of(new Error("ERR unknown '%s' command".formatted(command)));
@@ -143,6 +146,7 @@ public class Redis {
 			storage.set(key, value);
 		}
 
+		progagate(list);
 		return Ok.INSTANCE;
 	}
 
@@ -324,7 +328,7 @@ public class Redis {
 		if ("GET".equalsIgnoreCase(action)) {
 			final var key = String.valueOf(list.get(2));
 
-			final var property = configurationStorage.option(key);
+			final var property = configuration.option(key);
 			if (property == null) {
 				return Collections.emptyList();
 			}
@@ -342,7 +346,7 @@ public class Redis {
 		final var action = String.valueOf(list.get(1));
 
 		if ("REPLICATION".equalsIgnoreCase(action)) {
-			final var mode = configurationStorage.isSlave()
+			final var mode = configuration.isSlave()
 				? "slave"
 				: "master";
 
@@ -363,18 +367,32 @@ public class Redis {
 	}
 
 	private Object evaluateReplicaConfig(List<?> list) {
-		return "OK";
+		return Ok.INSTANCE;
 	}
 
-	private List<Object> evaluatePSync(List<?> list) {
-		return List.of(
-			"FULLRESYNC %s 0".formatted(getMasterReplicationId()),
-			new BulkBlob(Base64.getDecoder().decode("UkVESVMwMDEx+glyZWRpcy12ZXIFNy4yLjD6CnJlZGlzLWJpdHPAQPoFY3RpbWXCbQi8ZfoIdXNlZC1tZW3CsMQQAPoIYW9mLWJhc2XAAP/wbjv+wP9aog=="))
-		);
+	private List<Object> evaluatePSync(Client client, List<?> list) {
+		client.setReplicate(true);
+
+		replicas.add(client);
+		if (!client.onDisconnect(replicas::remove)) {
+			replicas.remove(client);
+			return List.of(new Error("ERR could not enable replica"));
+		}
+
+		client.command("FULLRESYNC %s 0".formatted(getMasterReplicationId()));
+		client.command(new BulkBlob(Base64.getDecoder().decode("UkVESVMwMDEx+glyZWRpcy12ZXIFNy4yLjD6CnJlZGlzLWJpdHPAQPoFY3RpbWXCbQi8ZfoIdXNlZC1tZW3CsMQQAPoIYW9mLWJhc2XAAP/wbjv+wP9aog==")));
+
+		return null;
 	}
 
 	public String getMasterReplicationId() {
-		return configurationStorage.masterReplicationId().argument(0, String.class).get();
+		return configuration.masterReplicationId().argument(0, String.class).get();
+	}
+
+	public void progagate(List<?> command) {
+		replicas.forEach((client) -> {
+			client.command(command);
+		});
 	}
 
 }

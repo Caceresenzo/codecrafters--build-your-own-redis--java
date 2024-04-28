@@ -19,6 +19,10 @@ public class Serializer {
 
 	private final OutputStream outputStream;
 
+	public void flush() throws IOException {
+		outputStream.flush();
+	}
+
 	public boolean write(Object value) throws IOException {
 		if (value instanceof String string) {
 			if (string.contains("\r\n")) {

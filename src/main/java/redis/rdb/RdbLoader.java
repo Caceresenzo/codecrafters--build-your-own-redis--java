@@ -2,6 +2,7 @@ package redis.rdb;
 
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -198,7 +199,14 @@ public class RdbLoader {
 	public static void load(Path path, Storage storage) throws IOException {
 		try (
 			final var fileInputStream = Files.newInputStream(path);
-			final var dataInputStream = new DataInputStream(fileInputStream);
+		) {
+			load(fileInputStream, storage);
+		}
+	}
+
+	public static void load(InputStream inputStream, Storage storage) throws IOException {
+		try (
+			final var dataInputStream = new DataInputStream(inputStream);
 		) {
 			final var loader = new RdbLoader(dataInputStream, storage);
 			loader.load();

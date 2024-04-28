@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 import lombok.RequiredArgsConstructor;
+import redis.type.Error;
 
 @RequiredArgsConstructor
 public class Deserializer {
@@ -13,6 +14,10 @@ public class Deserializer {
 	private final InputStream inputStream;
 
 	public Object read() throws IOException {
+		return read(false);
+	}
+
+	public Object read(boolean likelyBlob) throws IOException {
 		final var first = inputStream.read();
 		if (first == -1) {
 			return null;
@@ -21,7 +26,8 @@ public class Deserializer {
 		return switch (first) {
 			case Protocol.ARRAY -> parseArray();
 			case Protocol.SIMPLE_STRING -> parseString();
-			case Protocol.BULK_STRING -> parseBulkString();
+			case Protocol.SIMPLE_ERROR -> new Error(parseString());
+			case Protocol.BULK_STRING -> likelyBlob ? parseBulkBlob() : parseBulkString();
 
 			default -> {
 				//				System.out.print((char) first);
@@ -34,7 +40,7 @@ public class Deserializer {
 		};
 	}
 
-	private Object parseString() throws IOException {
+	private String parseString() throws IOException {
 		final var builder = new StringBuilder();
 
 		int value;
@@ -50,7 +56,7 @@ public class Deserializer {
 		return builder.toString();
 	}
 
-	private Object parseBulkString() throws IOException {
+	private String parseBulkString() throws IOException {
 		final var length = parseUnsignedInteger();
 		final var bytes = inputStream.readNBytes(length);
 
@@ -59,6 +65,12 @@ public class Deserializer {
 		// TODO validate
 
 		return new String(bytes);
+	}
+
+	private byte[] parseBulkBlob() throws IOException {
+		final var length = parseUnsignedInteger();
+
+		return inputStream.readNBytes(length);
 	}
 
 	private Object parseArray() throws IOException {

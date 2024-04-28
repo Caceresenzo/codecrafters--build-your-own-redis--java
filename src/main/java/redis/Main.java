@@ -1,24 +1,18 @@
 package redis;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.List;
 import java.util.stream.Collectors;
 
 import lombok.SneakyThrows;
+import redis.client.Client;
+import redis.client.ReplicaClient;
 import redis.configuration.Configuration;
-import redis.configuration.common.PortArgument;
-import redis.configuration.common.RemoteOption;
 import redis.rdb.RdbLoader;
-import redis.serial.Deserializer;
-import redis.serial.Serializer;
 import redis.store.Storage;
-import redis.type.BulkString;
 
 public class Main {
 
@@ -61,11 +55,10 @@ public class Main {
 		final var isSlave = configuration.isSlave();
 		System.out.println("configuration: isSlave=%s".formatted(isSlave));
 
+		final var redis = new Redis(storage, configuration);
+
 		if (isSlave) {
-			connectToMaster(
-				configuration.replicaOf(),
-				configuration.port().argument(0, Integer.class).get()
-			);
+			connectToMaster(redis);
 		} else {
 			final var directory = configuration.directory().pathArgument();
 			final var databaseFilename = configuration.databaseFilename().pathArgument();
@@ -86,7 +79,7 @@ public class Main {
 
 			while (true) {
 				final var socket = serverSocket.accept();
-				final var client = new Client(socket, storage, configuration);
+				final var client = new Client(socket, redis);
 
 				final var thread = threadFactory.newThread(client);
 				thread.start();
@@ -95,65 +88,15 @@ public class Main {
 	}
 
 	@SneakyThrows
-	public static void connectToMaster(RemoteOption replicaOf, int selfPort) {
+	public static void connectToMaster(Redis redis) {
+		final var replicaOf = redis.getConfiguration().replicaOf();
 		final var host = replicaOf.hostArgument().get();
 		final var port = replicaOf.portArgument().get();
-		
+
 		System.out.println("replica: connect to master %s:%s".formatted(host, port));
-		
-		try (
-			final var socket = new Socket(host, port)
-		) {
-			final var inputStream = socket.getInputStream();
-			final var outputStream = socket.getOutputStream();
 
-			final var deserializer = new Deserializer(inputStream);
-			final var serializer = new Serializer(outputStream);
-
-			{
-				System.out.println("replica: send PING");
-				serializer.write(List.of(new BulkString("PING")));
-
-				final var response = deserializer.read();
-				System.out.println("replica: received %s".formatted(response));
-			}
-
-			{
-				System.out.println("replica: send REPLCONF listening-port");
-				serializer.write(List.of(
-					new BulkString("REPLCONF"),
-					new BulkString("listening-port"),
-					new BulkString(String.valueOf(selfPort))
-				));
-
-				final var response = deserializer.read();
-				System.out.println("replica: received %s".formatted(response));
-			}
-
-			{
-				System.out.println("replica: send REPLCONF capa psync2");
-				serializer.write(List.of(
-					new BulkString("REPLCONF"),
-					new BulkString("capa"),
-					new BulkString("psync2")
-				));
-
-				final var response = deserializer.read();
-				System.out.println("replica: received %s".formatted(response));
-			}
-			
-			{
-				System.out.println("replica: send PSYNC ? -1");
-				serializer.write(List.of(
-					new BulkString("PSYNC"),
-					new BulkString("?"),
-					new BulkString("-1")
-					));
-				
-				final var response = deserializer.read();
-				System.out.println("replica: received %s".formatted(response));
-			}
-		}
+		final var socket = new Socket(host, port);
+		Thread.ofVirtual().start(new ReplicaClient(socket, redis));
 	}
 
 }

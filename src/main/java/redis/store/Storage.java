@@ -11,6 +11,10 @@ public class Storage {
 
 	private final Map<String, Cell<Object>> map = new ConcurrentHashMap<>();
 
+	public void clear() {
+		map.clear();
+	}
+	
 	public void set(String key, Object value) {
 		map.put(key, Cell.with(value));
 	}
