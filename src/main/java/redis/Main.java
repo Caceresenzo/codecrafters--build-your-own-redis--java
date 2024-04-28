@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 
 import lombok.SneakyThrows;
 import redis.configuration.Configuration;
+import redis.configuration.common.PortArgument;
 import redis.configuration.common.RemoteOption;
 import redis.rdb.RdbLoader;
 import redis.serial.Deserializer;
@@ -61,7 +62,10 @@ public class Main {
 		System.out.println("configuration: isSlave=%s".formatted(isSlave));
 
 		if (isSlave) {
-			connectToMaster(configuration.replicaOf());
+			connectToMaster(
+				configuration.replicaOf(),
+				configuration.port().argument(0, Integer.class).get()
+			);
 		} else {
 			final var directory = configuration.directory().pathArgument();
 			final var databaseFilename = configuration.databaseFilename().pathArgument();
@@ -91,12 +95,14 @@ public class Main {
 	}
 
 	@SneakyThrows
-	public static void connectToMaster(RemoteOption replicaOf) {
+	public static void connectToMaster(RemoteOption replicaOf, int selfPort) {
+		final var host = replicaOf.hostArgument().get();
+		final var port = replicaOf.portArgument().get();
+		
+		System.out.println("replica: connect to master %s:%s".formatted(host, port));
+		
 		try (
-			final var socket = new Socket(
-				replicaOf.hostArgument().get(),
-				replicaOf.portArgument().get()
-			)
+			final var socket = new Socket(host, port)
 		) {
 			final var inputStream = socket.getInputStream();
 			final var outputStream = socket.getOutputStream();
@@ -104,12 +110,37 @@ public class Main {
 			final var deserializer = new Deserializer(inputStream);
 			final var serializer = new Serializer(outputStream);
 
-			System.out.println("replica: send ping");
-			serializer.write(List.of(new BulkString("PING")));
-			outputStream.flush();
+			{
+				System.out.println("replica: send PING");
+				serializer.write(List.of(new BulkString("PING")));
 
-			var response = deserializer.read();
-			System.out.println("replica: received %s".formatted(response));
+				final var response = deserializer.read();
+				System.out.println("replica: received %s".formatted(response));
+			}
+
+			{
+				System.out.println("replica: send REPLCONF listening-port");
+				serializer.write(List.of(
+					new BulkString("REPLCONF"),
+					new BulkString("listening-port"),
+					new BulkString(String.valueOf(selfPort))
+				));
+
+				final var response = deserializer.read();
+				System.out.println("replica: received %s".formatted(response));
+			}
+
+			{
+				System.out.println("replica: send REPLCONF capa psync2");
+				serializer.write(List.of(
+					new BulkString("REPLCONF"),
+					new BulkString("capa"),
+					new BulkString("psync2")
+				));
+
+				final var response = deserializer.read();
+				System.out.println("replica: received %s".formatted(response));
+			}
 		}
 	}
 
