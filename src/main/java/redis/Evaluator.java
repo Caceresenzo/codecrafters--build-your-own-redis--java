@@ -313,14 +313,14 @@ public class Evaluator {
 		if ("GET".equalsIgnoreCase(action)) {
 			final var key = String.valueOf(list.get(2));
 
-			final var property = configurationStorage.getProperty(key);
+			final var property = configurationStorage.getOption(key);
 			if (property == null) {
 				return Collections.emptyList();
 			}
 
 			return Arrays.asList(
 				key,
-				property.get()
+				property.argument(0).get()
 			);
 		}
 

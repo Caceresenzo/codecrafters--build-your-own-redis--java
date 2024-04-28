@@ -2,25 +2,25 @@ package redis.configuration;
 
 import java.util.function.Function;
 
-public class Property<T> {
+public class Argument<T> {
 
-	private final String key;
+	private final String name;
 	private final Function<String, T> converter;
 	private T value;
 
-	public Property(String key, Function<String, T> converter) {
-		this.key = key;
+	public Argument(String name, Function<String, T> converter) {
+		this.name = name;
 		this.converter = converter;
 	}
 
-	public Property(String key, Function<String, T> converter, T defaultValue) {
-		this.key = key;
+	public Argument(String name, Function<String, T> converter, T defaultValue) {
+		this.name = name;
 		this.converter = converter;
 		this.value = defaultValue;
 	}
 
-	public String key() {
-		return key;
+	public String name() {
+		return name;
 	}
 
 	public T get() {

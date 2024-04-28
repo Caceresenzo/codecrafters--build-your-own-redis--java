@@ -18,20 +18,28 @@ public class Main {
 		final var storage = new Storage();
 		final var configuration = new Configuration();
 
-		for (var index = 0; index < args.length; index += 2) {
+		for (var index = 0; index < args.length; ++index) {
 			final var key = args[index].substring(2);
-			final var value = args[index + 1];
 
-			final var property = configuration.getProperty(key);
-			if (property == null) {
+			final var option = configuration.getOption(key);
+			if (option == null) {
 				System.err.println("unknown property: %s".formatted(key));
-			} else {
-				property.set(value);
+				continue;
 			}
+
+			final var argumentsCount = option.argumentsCount();
+			for (var jndex = 0; jndex < argumentsCount; ++jndex) {
+				final var argumentValue = args[index + 1 + jndex];
+				final var argument = option.argument(jndex);
+
+				argument.set(argumentValue);
+			}
+
+			index += argumentsCount;
 		}
 
-		final var directory = configuration.directory();
-		final var databaseFilename = configuration.databaseFilename();
+		final var directory = configuration.directory().pathArgument();
+		final var databaseFilename = configuration.databaseFilename().pathArgument();
 		if (directory.isSet() && databaseFilename.isSet()) {
 			final var path = Paths.get(directory.get(), databaseFilename.get());
 
@@ -40,7 +48,7 @@ public class Main {
 			}
 		}
 
-		final var port = configuration.port().get();
+		final var port = configuration.port().argument(0, Integer.class).get();
 		System.out.println("port: %s".formatted(port));
 
 		try (final var serverSocket = new ServerSocket(port)) {
