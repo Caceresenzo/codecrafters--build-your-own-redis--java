@@ -1,14 +1,23 @@
 package redis;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.stream.Collectors;
 
+import lombok.SneakyThrows;
 import redis.configuration.Configuration;
+import redis.configuration.common.RemoteOption;
 import redis.rdb.RdbLoader;
+import redis.serial.Deserializer;
+import redis.serial.Serializer;
 import redis.store.Storage;
+import redis.type.BulkString;
 
 public class Main {
 
@@ -48,15 +57,20 @@ public class Main {
 			System.out.println("configuration: %s(%s)".formatted(option.name(), arguments));
 		}
 
-		System.out.println("configuration: isSlave=%s".formatted(configuration.isSlave()));
+		final var isSlave = configuration.isSlave();
+		System.out.println("configuration: isSlave=%s".formatted(isSlave));
 
-		final var directory = configuration.directory().pathArgument();
-		final var databaseFilename = configuration.databaseFilename().pathArgument();
-		if (directory.isSet() && databaseFilename.isSet()) {
-			final var path = Paths.get(directory.get(), databaseFilename.get());
+		if (isSlave) {
+			connectToMaster(configuration.replicaOf());
+		} else {
+			final var directory = configuration.directory().pathArgument();
+			final var databaseFilename = configuration.databaseFilename().pathArgument();
+			if (directory.isSet() && databaseFilename.isSet()) {
+				final var path = Paths.get(directory.get(), databaseFilename.get());
 
-			if (Files.exists(path)) {
-				RdbLoader.load(path, storage);
+				if (Files.exists(path)) {
+					RdbLoader.load(path, storage);
+				}
 			}
 		}
 
@@ -73,6 +87,29 @@ public class Main {
 				final var thread = threadFactory.newThread(client);
 				thread.start();
 			}
+		}
+	}
+
+	@SneakyThrows
+	public static void connectToMaster(RemoteOption replicaOf) {
+		try (
+			final var socket = new Socket(
+				replicaOf.hostArgument().get(),
+				replicaOf.portArgument().get()
+			)
+		) {
+			final var inputStream = socket.getInputStream();
+			final var outputStream = socket.getOutputStream();
+
+			final var deserializer = new Deserializer(inputStream);
+			final var serializer = new Serializer(outputStream);
+
+			System.out.println("replica: send ping");
+			serializer.write(List.of(new BulkString("PING")));
+			outputStream.flush();
+
+			var response = deserializer.read();
+			System.out.println("replica: received %s".formatted(response));
 		}
 	}
 
