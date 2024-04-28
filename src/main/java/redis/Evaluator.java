@@ -24,6 +24,7 @@ public class Evaluator {
 
 	private final Storage storage;
 	private final Configuration configurationStorage;
+	private long masterReplicationOffset = 0;
 
 	@SuppressWarnings("unchecked")
 	public Object evaluate(Object value) {
@@ -338,11 +339,21 @@ public class Evaluator {
 			return new BulkString("""
 				# Replication
 				role:%s
-				""".formatted(mode)
+				master_replid:%s
+				master_repl_offset:%s
+				""".formatted(
+				mode,
+				getMasterReplicationId(),
+				masterReplicationOffset
+			)
 			);
 		}
 
 		return new BulkString("");
+	}
+
+	public String getMasterReplicationId() {
+		return configurationStorage.masterReplicationId().argument(0, String.class).get();
 	}
 
 }
