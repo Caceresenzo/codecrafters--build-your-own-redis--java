@@ -6,10 +6,12 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -51,7 +53,7 @@ public class Redis {
 			return List.of(new Payload(new Error("ERR command be sent in an array")));
 		} finally {
 			final var offset = replicationOffset.addAndGet(read);
-			System.out.println("offset: %s".formatted(offset));
+			log("offset: %s".formatted(offset));
 		}
 	}
 
@@ -423,8 +425,15 @@ public class Redis {
 			return replicas.size();
 		}
 
-		final var futures = new ArrayList<Future<Integer>>(replicas.size());
+		final var acks = new AtomicInteger();
+
+		final var futures = new ArrayList<Map.Entry<Client, Future<Integer>>>(replicas.size());
 		replicas.forEach((replica) -> {
+			if (replica.getOffset() == 0) {
+				acks.incrementAndGet();
+				return;
+			}
+
 			final var future = new CompletableFuture<Integer>();
 
 			replica.command(new Payload(
@@ -433,46 +442,54 @@ public class Redis {
 					new BulkString("GETACK"),
 					new BulkString("*")
 				),
-				false,
-				(response) -> {
-					System.out.println(response);
-					future.complete(1);
-				}
+				false
 			));
 
-			futures.add(future);
+			replica.setReplicateConsumer((x) -> future.complete(1));
+			futures.add(Map.entry(replica, future));
 		});
 
-		var acks = 0;
 		var remaining = (long) timeout;
-		for (final var future : futures) {
-			if (acks >= numberOfReplicas) {
-				continue;
+
+		for (final var entry : futures) {
+			if (acks.get() >= numberOfReplicas) {
+				break;
 			}
-			
+
+			final var future = entry.getValue();
+
 			if (remaining <= 0) {
-				if (future.isDone()) {
-					acks++;
+				final var isDone = future.isDone();
+				if (isDone) {
+					acks.incrementAndGet();
 				}
 
+				log("no time left isDone=%s acks=%d".formatted(isDone, acks.get()));
 				continue;
 			}
 
 			final var start = System.currentTimeMillis();
 			try {
 				future.get(remaining, TimeUnit.MILLISECONDS);
-				acks++;
+				acks.incrementAndGet();
 
 				final var took = System.currentTimeMillis() - start;
 				remaining -= took;
+
+				log("future ended took=%d remaining=%d acks=%d".formatted(took, remaining, acks.get()));
 			} catch (TimeoutException exception) {
+				final var took = System.currentTimeMillis() - start;
+
 				remaining = 0;
+				log("future timeout took=%d".formatted(took));
 			} catch (Exception exception) {
 				exception.printStackTrace();
 			}
 		}
 
-		return (int) acks;
+		futures.forEach((entry) -> entry.getKey().setReplicateConsumer(null));
+
+		return acks.get();
 	}
 
 	public String getMasterReplicationId() {
@@ -490,6 +507,14 @@ public class Redis {
 		replicas.forEach((client) -> {
 			client.command(payload);
 		});
+	}
+
+	public static void log(String message) {
+		System.out.println("[%d] %s".formatted(ProcessHandle.current().pid(), message));
+	}
+
+	public static void error(String message) {
+		System.err.println("[%d] %s".formatted(ProcessHandle.current().pid(), message));
 	}
 
 }

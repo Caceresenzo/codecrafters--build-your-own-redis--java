@@ -1,8 +1,8 @@
 package redis.client;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.net.Socket;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -16,6 +16,7 @@ import lombok.SneakyThrows;
 import redis.Redis;
 import redis.serial.Deserializer;
 import redis.serial.Serializer;
+import redis.type.BulkBlob;
 import redis.util.TrackedInputStream;
 import redis.util.TrackedOutputStream;
 
@@ -29,8 +30,9 @@ public class Client implements Runnable {
 	private boolean connected;
 	private Consumer<Client> disconnectListener;
 	private @Setter boolean replicate;
-	private @Getter long offset = 0;
+	private @Getter @Setter long offset = 0;
 	private final BlockingQueue<Payload> pendingCommands = new ArrayBlockingQueue<>(128, true);
+	private @Setter Consumer<Object> replicateConsumer;
 
 	public Client(Socket socket, Redis evaluator) throws IOException {
 		this.id = ID_INCREMENT.incrementAndGet();
@@ -42,11 +44,11 @@ public class Client implements Runnable {
 	@Override
 	public void run() {
 		connected = true;
-		System.out.println("%d: connected".formatted(id));
+		Redis.log("%d: connected".formatted(id));
 
 		try (socket) {
-			final var inputStream = new TrackedInputStream(new BufferedInputStream(socket.getInputStream()));
-			final var outputStream = new TrackedOutputStream(new BufferedOutputStream(socket.getOutputStream()));
+			final var inputStream = new TrackedInputStream(socket.getInputStream());
+			final var outputStream = new TrackedOutputStream(socket.getOutputStream());
 
 			final var deserializer = new Deserializer(inputStream);
 			final var serializer = new Serializer(outputStream);
@@ -61,20 +63,42 @@ public class Client implements Runnable {
 
 				final var read = inputStream.count();
 
-				System.out.println("%d: received (%d): %s".formatted(id, read, request));
+				Redis.log("%d: received (%d): %s".formatted(id, read, request));
 				final var values = evaluator.evaluate(this, request, read);
 
 				if (values == null) {
-					System.out.println("%d: no answer".formatted(id));
+					Redis.log("%d: no answer".formatted(id));
 					continue;
 				}
 
 				for (var answer : values) {
-					System.out.println("%d: answering: %s".formatted(id, answer));
+					Redis.log("%d: answering: %s".formatted(id, answer));
 					serializer.write(answer.value());
 				}
 
 				outputStream.flush();
+			}
+
+			if (replicate) {
+				Thread.ofVirtual().start(new Runnable() {
+
+					@Override
+					@SneakyThrows
+					public void run() {
+						while (socket.isConnected()) {
+							final var request = deserializer.read();
+							if (request == null) {
+								break;
+							}
+
+							final var consumer = replicateConsumer;
+							if (consumer != null) {
+								consumer.accept(request);
+							}
+						}
+					}
+
+				});
 			}
 
 			while (replicate && socket.isConnected()) {
@@ -83,23 +107,32 @@ public class Client implements Runnable {
 					continue;
 				}
 
-				System.out.println("%d: send command: %s".formatted(id, command));
+				Redis.log("%d: send command: %s".formatted(id, command));
 
-				if (socket.isConnected()) {
-					serializer.write(command.value());
-					outputStream.flush();
+				outputStream.begin();
+				serializer.write(command.value());
+				serializer.flush();
 
-					if (command.callback() != null) {
-						command.callback().accept(deserializer.read());
-					}
+				if (command.value() instanceof BulkBlob) {
+					offset = 0;
+					Redis.log("%d: reset offset".formatted(id));
+				} else {
+					offset += outputStream.count();
+					Redis.log("%d: offset: %d".formatted(id, offset));
 				}
 			}
-		} catch (IOException exception) {
-			System.err.println("%d: returned an error: %s".formatted(id, exception.getMessage()));
-			exception.printStackTrace();
+		} catch (Exception exception) {
+			Redis.error("%d: returned an error: %s".formatted(id, exception.getMessage()));
+
+			final var writer = new StringWriter();
+			exception.printStackTrace(new PrintWriter(writer));
+
+			for (final var line : writer.getBuffer().toString().split("\n")) {
+				Redis.error("%d:   %s".formatted(id, line.replace("\r", "")));
+			}
 		}
 
-		System.out.println("%d: disconnected".formatted(id));
+		Redis.log("%d: disconnected".formatted(id));
 
 		synchronized (this) {
 			connected = false;
@@ -111,8 +144,13 @@ public class Client implements Runnable {
 	}
 
 	public void command(Payload value) {
-		System.out.println("%d: queue command: %s".formatted(id, value));
-		pendingCommands.add(value);
+		final var inserted = pendingCommands.offer(value);
+		Redis.log("%d: queue command: %s - inserted?=%s newSize=%s".formatted(id, value, inserted, pendingCommands.size()));
+
+		if (!inserted) {
+			Redis.log("%d: retry queue command: %s".formatted(id, value));
+			pendingCommands.add(value);
+		}
 	}
 
 	public boolean onDisconnect(Consumer<Client> listener) {

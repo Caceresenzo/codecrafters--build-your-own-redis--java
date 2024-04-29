@@ -2,6 +2,8 @@ package redis.client;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.net.Socket;
 import java.util.List;
 
@@ -49,16 +51,16 @@ public class ReplicaClient implements Runnable {
 
 				final var read = inputStream.count();
 
-				System.out.println("replica: received (%s): %s".formatted(read, request));
+				Redis.log("replica: received (%s): %s".formatted(read, request));
 				final var values = redis.evaluate(null, request, read);
 
 				if (values == null) {
-					System.out.println("replica: no answer");
+					Redis.log("replica: no answer");
 					continue;
 				}
 
 				for (var answer : values) {
-					System.out.println("replica: answering: %s".formatted(answer));
+					Redis.log("replica: answering: %s".formatted(answer));
 
 					if (!answer.ignorableByReplica()) {
 						serializer.write(answer.value());
@@ -67,7 +69,18 @@ public class ReplicaClient implements Runnable {
 
 				serializer.flush();
 			}
+		} catch (Exception exception) {
+			Redis.error("replica: returned an error: %s".formatted(exception.getMessage()));
+			
+			final var writer = new StringWriter();
+			exception.printStackTrace(new PrintWriter(writer));
+
+			for (final var line : writer.getBuffer().toString().split("\n")) {
+				Redis.error("replica:   %s".formatted(line.replace("\r", "")));
+			}
 		}
+
+		Redis.log("replica: disconnected");
 	}
 
 	@SneakyThrows
@@ -106,11 +119,11 @@ public class ReplicaClient implements Runnable {
 
 	@SneakyThrows
 	public Object send(List<Object> command) {
-		System.out.println("replica: sending: %s".formatted(command));
+		Redis.log("replica: sending: %s".formatted(command));
 		serializer.write(command);
 
 		final var answer = deserializer.read();
-		System.out.println("replica: received: %s".formatted(answer));
+		Redis.log("replica: received: %s".formatted(answer));
 
 		return answer;
 	}
