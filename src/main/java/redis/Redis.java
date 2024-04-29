@@ -6,6 +6,10 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -415,7 +419,60 @@ public class Redis {
 		final var numberOfReplicas = Integer.valueOf(String.valueOf(list.get(1)));
 		final var timeout = Integer.valueOf(String.valueOf(list.get(2)));
 
-		return replicas.size();
+		if (replicationOffset.get() == 0) {
+			return replicas.size();
+		}
+
+		final var futures = new ArrayList<Future<Integer>>(replicas.size());
+		replicas.forEach((replica) -> {
+			final var future = new CompletableFuture<Integer>();
+
+			replica.command(new Payload(
+				List.of(
+					new BulkString("REPLCONF"),
+					new BulkString("GETACK"),
+					new BulkString("*")
+				),
+				false,
+				(response) -> {
+					System.out.println(response);
+					future.complete(Integer.parseInt(String.valueOf(((List) response).get(2))));
+				}
+			));
+
+			futures.add(future);
+		});
+
+		var acks = 0;
+		var remaining = (long) timeout;
+		for (final var future : futures) {
+			if (acks >= numberOfReplicas) {
+				continue;
+			}
+			
+			if (remaining <= 0) {
+				if (future.isDone()) {
+					acks++;
+				}
+
+				continue;
+			}
+
+			final var start = System.currentTimeMillis();
+			try {
+				future.get(remaining, TimeUnit.MILLISECONDS);
+				acks++;
+
+				final var took = System.currentTimeMillis() - start;
+				remaining -= took;
+			} catch (TimeoutException exception) {
+				remaining = 0;
+			} catch (Exception exception) {
+				exception.printStackTrace();
+			}
+		}
+
+		return (int) acks;
 	}
 
 	public String getMasterReplicationId() {

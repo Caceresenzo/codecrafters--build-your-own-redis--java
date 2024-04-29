@@ -27,6 +27,11 @@ public class TrackedInputStream extends InputStream {
 		return value;
 	}
 
+	@Override
+	public void close() throws IOException {
+		delegate.close();
+	}
+
 	public void begin() {
 		read = 0;
 	}

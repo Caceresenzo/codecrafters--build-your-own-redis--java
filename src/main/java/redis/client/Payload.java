@@ -1,12 +1,19 @@
 package redis.client;
 
+import java.util.function.Consumer;
+
 public record Payload(
 	Object value,
-	boolean ignorableByReplica
+	boolean ignorableByReplica,
+	Consumer<Object> callback
 ) {
 
 	public Payload(Object value) {
-		this(value, true);
+		this(value, true, null);
+	}
+
+	public Payload(Object value, boolean ignorableByReplica) {
+		this(value, ignorableByReplica, null);
 	}
 
 	public String toString() {

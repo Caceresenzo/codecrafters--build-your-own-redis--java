@@ -8,7 +8,6 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 import lombok.Getter;
@@ -18,6 +17,7 @@ import redis.Redis;
 import redis.serial.Deserializer;
 import redis.serial.Serializer;
 import redis.util.TrackedInputStream;
+import redis.util.TrackedOutputStream;
 
 public class Client implements Runnable {
 
@@ -29,7 +29,7 @@ public class Client implements Runnable {
 	private boolean connected;
 	private Consumer<Client> disconnectListener;
 	private @Setter boolean replicate;
-	private @Getter AtomicLong replicationOffset = new AtomicLong();
+	private @Getter long offset = 0;
 	private final BlockingQueue<Payload> pendingCommands = new ArrayBlockingQueue<>(128, true);
 
 	public Client(Socket socket, Redis evaluator) throws IOException {
@@ -46,7 +46,7 @@ public class Client implements Runnable {
 
 		try (socket) {
 			final var inputStream = new TrackedInputStream(new BufferedInputStream(socket.getInputStream()));
-			final var outputStream = new BufferedOutputStream(socket.getOutputStream());
+			final var outputStream = new TrackedOutputStream(new BufferedOutputStream(socket.getOutputStream()));
 
 			final var deserializer = new Deserializer(inputStream);
 			final var serializer = new Serializer(outputStream);
@@ -58,7 +58,7 @@ public class Client implements Runnable {
 				if (request == null) {
 					break;
 				}
-				
+
 				final var read = inputStream.count();
 
 				System.out.println("%d: received (%d): %s".formatted(id, read, request));
@@ -88,6 +88,10 @@ public class Client implements Runnable {
 				if (socket.isConnected()) {
 					serializer.write(command.value());
 					outputStream.flush();
+
+					if (command.callback() != null) {
+						command.callback().accept(deserializer.read());
+					}
 				}
 			}
 		} catch (IOException exception) {
