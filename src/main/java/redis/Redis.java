@@ -436,7 +436,7 @@ public class Redis {
 				false,
 				(response) -> {
 					System.out.println(response);
-					future.complete(Integer.parseInt(String.valueOf(((List) response).get(2))));
+					future.complete(1);
 				}
 			));
 
