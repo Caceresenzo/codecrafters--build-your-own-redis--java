@@ -41,7 +41,7 @@ public class Configuration {
 	}
 
 	public boolean isSlave() {
-		return replicaOf.hostArgument().isSet();
+		return replicaOf.hostAndPortArgument().isSet();
 	}
 
 }
