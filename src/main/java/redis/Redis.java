@@ -480,12 +480,7 @@ public class Redis {
 	}
 
 	public void progagate(RArray<RValue> command) {
-		final var payload = new Payload(RArray.view(
-			command.stream()
-				.map(String::valueOf)
-				.map(RString::bulk)
-				.toList()
-		));
+		final var payload = new Payload(command);
 
 		replicas.forEach((client) -> {
 			client.command(payload);
