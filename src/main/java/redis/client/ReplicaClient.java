@@ -1,18 +1,19 @@
 package redis.client;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.Socket;
-import java.util.List;
 
 import lombok.SneakyThrows;
 import redis.Redis;
 import redis.rdb.RdbLoader;
 import redis.serial.Deserializer;
 import redis.serial.Serializer;
-import redis.type.BulkString;
+import redis.type.RArray;
+import redis.type.RBlob;
+import redis.type.RString;
+import redis.type.RValue;
 import redis.util.TrackedInputStream;
 
 public class ReplicaClient implements Runnable {
@@ -43,7 +44,7 @@ public class ReplicaClient implements Runnable {
 
 			while (true) {
 				inputStream.begin();
-				
+
 				final var request = deserializer.read();
 				if (request == null) {
 					break;
@@ -71,7 +72,7 @@ public class ReplicaClient implements Runnable {
 			}
 		} catch (Exception exception) {
 			Redis.error("replica: returned an error: %s".formatted(exception.getMessage()));
-			
+
 			final var writer = new StringWriter();
 			exception.printStackTrace(new PrintWriter(writer));
 
@@ -85,8 +86,8 @@ public class ReplicaClient implements Runnable {
 
 	@SneakyThrows
 	private void handshake(Deserializer deserializer, Serializer serializer) {
-		send(List.of(
-			new BulkString("PING")
+		send(RArray.of(
+			RString.bulk("PING")
 		));
 
 		final var port = redis.getConfiguration()
@@ -94,31 +95,31 @@ public class ReplicaClient implements Runnable {
 			.argument(0, Integer.class)
 			.get();
 
-		send(List.of(
-			new BulkString("REPLCONF"),
-			new BulkString("listening-port"),
-			new BulkString(String.valueOf(port))
+		send(RArray.of(
+			RString.bulk("REPLCONF"),
+			RString.bulk("listening-port"),
+			RString.bulk(String.valueOf(port))
 		));
 
-		send(List.of(
-			new BulkString("REPLCONF"),
-			new BulkString("capa"),
-			new BulkString("psync2")
+		send(RArray.of(
+			RString.bulk("REPLCONF"),
+			RString.bulk("capa"),
+			RString.bulk("psync2")
 		));
 
-		send(List.of(
-			new BulkString("PSYNC"),
-			new BulkString("?"),
-			new BulkString("-1")
+		send(RArray.of(
+			RString.bulk("PSYNC"),
+			RString.bulk("?"),
+			RString.bulk("-1")
 		));
 
-		final var rdb = (byte[]) deserializer.read(true);
+		final var rdb = (RBlob) deserializer.read(true);
 		redis.getStorage().clear();
-		RdbLoader.load(new ByteArrayInputStream(rdb), redis.getStorage());
+		RdbLoader.load(rdb.inputStream(), redis.getStorage());
 	}
 
 	@SneakyThrows
-	public Object send(List<Object> command) {
+	public Object send(RArray<RValue> command) {
 		Redis.log("replica: sending: %s".formatted(command));
 		serializer.write(command);
 
