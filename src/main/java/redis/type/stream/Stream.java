@@ -8,7 +8,9 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import redis.type.Error;
+import redis.type.RArray;
+import redis.type.RError;
+import redis.type.RValue;
 import redis.type.stream.identifier.Identifier;
 import redis.type.stream.identifier.MillisecondsIdentifier;
 import redis.type.stream.identifier.UniqueIdentifier;
@@ -21,7 +23,7 @@ public class Stream {
 	private final Condition newDataCondition = lock.writeLock().newCondition();
 	private UniqueIdentifier lastIdentifier;
 
-	public UniqueIdentifier add(Identifier id, List<Object> content) {
+	public UniqueIdentifier add(Identifier id, RArray<RValue> content) {
 		lock.writeLock().lock();
 
 		try {
@@ -32,10 +34,10 @@ public class Stream {
 			};
 
 			if (!isUnique(unique)) {
-				throw Error.xaddIdEqualOrSmaller().asException();
+				throw RError.xaddIdEqualOrSmaller().asException();
 			}
 
-			entries.add(new StreamEntry(unique, content));
+			entries.add(new StreamEntry(unique, new ArrayList<>(content.items())));
 			lastIdentifier = unique;
 
 			newDataCondition.signalAll();
@@ -161,8 +163,8 @@ public class Stream {
 	}
 
 	private boolean isUnique(UniqueIdentifier identifier) {
-		if (identifier.compareTo(UniqueIdentifier.MIN) < 0) {
-			throw Error.xaddIdGreater00().asException();
+		if (identifier.compareTo(UniqueIdentifier.MINIMUM) < 0) {
+			throw RError.xaddIdGreater00().asException();
 		}
 
 		if (entries.isEmpty()) {

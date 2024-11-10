@@ -11,6 +11,8 @@ import java.util.Arrays;
 import lombok.RequiredArgsConstructor;
 import redis.store.Cell;
 import redis.store.Storage;
+import redis.type.RString;
+import redis.type.RValue;
 
 @RequiredArgsConstructor
 public class RdbLoader {
@@ -103,14 +105,14 @@ public class RdbLoader {
 					final var value = readValue(valueType);
 					log("value", value);
 
-					final var cell = new Cell<>(value, expiration);
+					final var cell = new Cell<Object>(value, expiration);
 					storage.put(key, cell);
 				}
 			}
 		}
 	}
 
-	private Object readValue(int valueType) throws IOException {
+	private RValue readValue(int valueType) throws IOException {
 		return switch (valueType) {
 			case STRING_VALUE_TYPE -> readString();
 			default -> throw new IllegalStateException("unsupported value type: " + valueType);
@@ -172,7 +174,7 @@ public class RdbLoader {
 		};
 	}
 
-	public String readString() throws IOException {
+	public RString readString() throws IOException {
 		final var length = readLength();
 
 		if (length < 0) {
@@ -180,16 +182,16 @@ public class RdbLoader {
 			final var type = (-length) - 1;
 
 			// TODO ByteOrder?
-			return switch (type) {
+			return RString.detect(switch (type) {
 				case STRING_INTEGER_8BIT -> String.valueOf(Byte.toUnsignedInt(inputStream.readByte()));
 				case STRING_INTEGER_16BIT -> String.valueOf(Short.toUnsignedInt(Short.reverseBytes(inputStream.readShort())));
 				case STRING_INTEGER_32BIT -> Integer.toUnsignedString(Integer.reverseBytes(inputStream.readInt()));
 				default -> throw new IllegalArgumentException("unexpected length type: " + Integer.toBinaryString(type));
-			};
+			});
 		}
 
 		final var content = inputStream.readNBytes(length);
-		return new String(content, StandardCharsets.US_ASCII);
+		return RString.detect(new String(content, StandardCharsets.US_ASCII));
 	}
 
 	public void skip(int length) throws IOException {

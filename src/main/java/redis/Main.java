@@ -90,8 +90,8 @@ public class Main {
 	@SneakyThrows
 	public static void connectToMaster(Redis redis) {
 		final var replicaOf = redis.getConfiguration().replicaOf();
-		final var host = replicaOf.hostArgument().get();
-		final var port = replicaOf.portArgument().get();
+		final var host = replicaOf.host();
+		final var port = replicaOf.port();
 
 		System.out.println("replica: connect to master %s:%s".formatted(host, port));
 
