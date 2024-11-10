@@ -6,9 +6,9 @@ import lombok.Getter;
 public class ErrorException extends RuntimeException {
 
 	@Getter
-	private final Error error;
+	private final RError error;
 
-	public ErrorException(Error error) {
+	public ErrorException(RError error) {
 		this.error = error;
 	}
 

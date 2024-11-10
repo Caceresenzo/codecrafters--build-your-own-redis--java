@@ -2,7 +2,6 @@ package redis;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
@@ -22,12 +21,17 @@ import redis.client.Payload;
 import redis.configuration.Configuration;
 import redis.store.Cell;
 import redis.store.Storage;
-import redis.type.BulkBlob;
-import redis.type.BulkString;
-import redis.type.Error;
 import redis.type.ErrorException;
-import redis.type.Ok;
+import redis.type.RArray;
+import redis.type.RBlob;
+import redis.type.RError;
+import redis.type.RInteger;
+import redis.type.RNil;
+import redis.type.ROk;
+import redis.type.RString;
+import redis.type.RValue;
 import redis.type.stream.Stream;
+import redis.type.stream.StreamEntry;
 import redis.type.stream.identifier.Identifier;
 import redis.type.stream.identifier.UniqueIdentifier;
 
@@ -42,31 +46,27 @@ public class Redis {
 	@SuppressWarnings("unchecked")
 	public List<Payload> evaluate(Client client, Object value, long read) {
 		try {
-			if (value instanceof List list) {
+			if (value instanceof RArray array) {
 				try {
-					return evaluate(client, list, read);
+					return evaluate(client, array, read);
 				} catch (ErrorException exception) {
 					return List.of(new Payload(exception.getError()));
 				}
 			}
 
-			return List.of(new Payload(new Error("ERR command be sent in an array")));
+			return List.of(new Payload(new RError("ERR command be sent in an array")));
 		} finally {
 			final var offset = replicationOffset.addAndGet(read);
 			log("offset: %s".formatted(offset));
 		}
 	}
 
-	private List<Payload> evaluate(Client client, List<Object> arguments, long read) {
+	private List<Payload> evaluate(Client client, RArray<RValue> arguments, long read) {
 		if (arguments.isEmpty()) {
-			return List.of(new Payload(new Error("ERR command array is empty")));
+			return List.of(new Payload(new RError("ERR command array is empty")));
 		}
 
-		final var command = String.valueOf(arguments.getFirst());
-
-		if ("COMMAND".equalsIgnoreCase(command)) {
-			return Collections.singletonList(new Payload(evaluateCommand(arguments)));
-		}
+		final var command = ((RString) arguments.getFirst()).content();
 
 		if ("PING".equalsIgnoreCase(command)) {
 			return Collections.singletonList(new Payload(evaluatePing(arguments)));
@@ -127,68 +127,64 @@ public class Redis {
 			return Collections.singletonList(new Payload(evaluateWait(arguments)));
 		}
 
-		return List.of(new Payload(new Error("ERR unknown '%s' command".formatted(command))));
+		return List.of(new Payload(new RError("ERR unknown '%s' command".formatted(command))));
 	}
 
-	private Object evaluateCommand(List<?> list) {
-		return Collections.emptyList();
+	private RValue evaluatePing(RArray<RValue> list) {
+		return RString.pong();
 	}
 
-	private Object evaluatePing(List<?> list) {
-		return "PONG";
-	}
-
-	private Object evaluateEcho(List<?> list) {
+	private RValue evaluateEcho(RArray<RValue> list) {
 		if (list.size() != 2) {
-			return new Error("ERR wrong number of arguments for 'echo' command");
+			return new RError("ERR wrong number of arguments for 'echo' command");
 		}
 
-		return new BulkString(String.valueOf(list.get(1)));
+		return RString.bulk((RString) list.get(1));
 	}
 
-	private Object evaluateSet(List<?> list) {
+	private RValue evaluateSet(RArray<RValue> list) {
 		if (list.size() != 3 && list.size() != 5) {
-			return new Error("ERR wrong number of arguments for 'set' command");
+			return new RError("ERR wrong number of arguments for 'set' command");
 		}
 
-		final var key = String.valueOf(list.get(1));
+		final var key = (RString) list.get(1);
 		final var value = list.get(2);
 
 		if (list.size() == 5) {
-			final var px = String.valueOf(list.get(3));
-			if (!"px".equalsIgnoreCase(px)) {
-				return Error.syntax();
+			final var px = (RString) list.get(3);
+			if (!RString.equalsIgnoreCase(px, "px")) {
+				return RError.syntax();
 			}
 
-			final var millisecondes = Long.parseLong(String.valueOf(list.get(4)));
+			final var millisecondes = ((RString) list.get(4)).asLong();
 			storage.set(key, value, millisecondes);
 		} else {
 			storage.set(key, value);
 		}
 
-		return Ok.INSTANCE;
+		return ROk.INSTANCE;
 	}
 
-	private Object evaluateGet(List<?> list) {
+	private RValue evaluateGet(RArray<RValue> list) {
 		if (list.size() != 2) {
-			return new Error("ERR wrong number of arguments for 'get' command");
+			return new RError("ERR wrong number of arguments for 'get' command");
 		}
 
-		final var key = String.valueOf(list.get(1));
+		final var key = (RString) list.get(1);
 		final var value = storage.get(key);
 
 		if (value == null) {
-			return new BulkString(null);
+			return RNil.BULK;
 		}
 
-		return value;
+		return (RValue) value;
 	}
 
-	private Object evaluateXAdd(List<Object> list) {
-		final var key = String.valueOf(list.get(1));
-		final var id = Identifier.parse(String.valueOf(list.get(2)));
+	private RValue evaluateXAdd(RArray<RValue> list) {
+		final var key = (RString) list.get(1);
+		final var id = Identifier.parse((RString) list.get(2));
 
-		final var keyValues = new ArrayList<>(list.subList(3, list.size()));
+		final var keyValues = RArray.view(list.subList(3, list.size()));
 
 		final var newIdReference = new AtomicReference<UniqueIdentifier>();
 		storage.append(
@@ -201,28 +197,23 @@ public class Redis {
 			}
 		);
 
-		return new BulkString(newIdReference.get().toString());
+		return RString.bulk(newIdReference.get().toString());
 	}
 
-	private Object evaluateXRange(List<Object> list) {
-		final var key = String.valueOf(list.get(1));
-		final var fromId = Identifier.parse(String.valueOf(list.get(2)));
-		final var toId = Identifier.parse(String.valueOf(list.get(3)));
+	private RValue evaluateXRange(RArray<RValue> list) {
+		final var key = (RString) list.get(1);
+		final var fromId = Identifier.parse((RString) list.get(2));
+		final var toId = Identifier.parse((RString) list.get(3));
 
 		final var stream = (Stream) storage.get(key);
 		final var entries = stream.range(fromId, toId);
 
-		return entries.stream()
-			.map((entry) -> List.of(
-				new BulkString(entry.identifier().toString()),
-				entry.content()
-			))
-			.toList();
+		return collectStreamContent(entries);
 	}
 
-	private Object evaluateXRead(List<Object> list) {
+	private RValue evaluateXRead(RArray<RValue> list) {
 		record Query(
-			String key,
+			RString key,
 			Identifier identifier
 		) {}
 
@@ -231,30 +222,30 @@ public class Redis {
 
 		final var size = list.size();
 		for (var index = 1; index < size; ++index) {
-			var element = String.valueOf(list.get(index));
+			var element = (RString) list.get(index);
 
-			if ("block".equalsIgnoreCase(element)) {
+			if (RString.equalsIgnoreCase(element, "block")) {
 				++index;
 
-				element = String.valueOf(list.get(index));
-				timeout = Duration.ofMillis(Long.parseLong(element));
+				element = (RString) list.get(index);
+				timeout = Duration.ofMillis(((RString) list.get(index)).asLong());
 
 				continue;
 			}
 
-			if ("streams".equalsIgnoreCase(element)) {
+			if (RString.equalsIgnoreCase(element, "streams")) {
 				++index;
 
 				final var remaining = size - index;
 				final var offset = remaining / 2;
 
 				for (var jndex = 0; jndex < offset; ++jndex) {
-					final var key = String.valueOf(list.get(index + jndex));
+					final var key = (RString) list.get(index + jndex);
 
-					element = String.valueOf(list.get(index + offset + jndex));
-					final var identifier = timeout != null && "$".equals(element)
+					element = (RString) list.get(index + offset + jndex);
+					final var identifier = timeout != null && RString.equalsIgnoreCase(element, "$")
 						? null
-						: Identifier.parse(String.valueOf(list.get(index + offset + jndex)));
+						: Identifier.parse((RString) list.get(index + offset + jndex));
 
 					queries.add(new Query(key, identifier));
 				}
@@ -271,42 +262,45 @@ public class Redis {
 			final var entries = stream.read(query.identifier(), timeout);
 
 			if (entries == null) {
-				return new BulkString(null);
+				return RNil.BULK;
 			}
 
-			return List.of(List.of(
-				new BulkString(key),
-				entries.stream()
-					.map((entry) -> List.of(
-						new BulkString(entry.identifier().toString()),
-						entry.content()
-					))
-					.toList()
+			return RArray.of(RArray.of(
+				RString.bulk(key),
+				collectStreamContent(entries)
 			));
 		}
 
-		return queries.stream()
-			.map((query) -> {
-				final var key = query.key();
-				final var stream = (Stream) storage.get(key);
-				final var entries = stream.read(query.identifier());
+		return RArray.view(
+			queries.stream()
+				.map((query) -> {
+					final var key = query.key();
+					final var stream = (Stream) storage.get(key);
+					final var entries = stream.read(query.identifier());
 
-				return List.of(
-					key,
-					entries.stream()
-						.map((entry) -> List.of(
-							new BulkString(entry.identifier().toString()),
-							entry.content()
-						))
-						.toList()
-				);
-			})
-			.toList();
+					return RArray.of(
+						RString.simple(key),
+						collectStreamContent(entries)
+					);
+				})
+				.toList()
+		);
 	}
 
-	private Object evaluateKeys(List<?> list) {
+	private RArray<RArray<RValue>> collectStreamContent(final List<StreamEntry> entries) {
+		return RArray.view(
+			entries.stream()
+				.map((entry) -> RArray.<RValue>of(
+					RString.bulk(entry.identifier().toString()),
+					RArray.view(entry.content())
+				))
+				.toList()
+		);
+	}
+
+	private RValue evaluateKeys(RArray<RValue> list) {
 		if (list.size() != 2) {
-			return new Error("ERR wrong number of arguments for 'keys' command");
+			return new RError("ERR wrong number of arguments for 'keys' command");
 		}
 
 		// final var pattern = String.valueOf(list.get(1));
@@ -314,62 +308,52 @@ public class Redis {
 		return storage.keys();
 	}
 
-	private Object evaluateType(List<?> list) {
+	private RValue evaluateType(RArray<RValue> list) {
 		if (list.size() != 2) {
-			return new Error("ERR wrong number of arguments for 'type' command");
+			return new RError("ERR wrong number of arguments for 'type' command");
 		}
 
-		final var key = String.valueOf(list.get(1));
+		final var key = (RString) list.get(1);
 		final var value = storage.get(key);
 
-		if (value == null) {
-			return "none";
-		}
-
-		if (value instanceof List) {
-			return "list";
-		}
-
-		if (value instanceof String) {
-			return "string";
-		}
-
-		if (value instanceof Stream) {
-			return "stream";
-		}
-
-		throw new IllegalStateException("unknown type: %s".formatted(value.getClass()));
+		return RString.simple(switch (value) {
+			case null -> "none";
+			case RArray<?> __ -> "list";
+			case RString __ -> "string";
+			case Stream __ -> "stream";
+			default -> throw new IllegalStateException("unknown type: %s".formatted(value.getClass()));
+		});
 	}
 
-	private Object evaluateConfig(List<?> list) {
-		final var action = String.valueOf(list.get(1));
+	private RValue evaluateConfig(RArray<RValue> list) {
+		final var action = (RString) list.get(1);
 
-		if ("GET".equalsIgnoreCase(action)) {
-			final var key = String.valueOf(list.get(2));
+		if (RString.equalsIgnoreCase(action, "GET")) {
+			final var key = (RString) list.get(2);
 
-			final var property = configuration.option(key);
+			final var property = configuration.option(key.content());
 			if (property == null) {
-				return Collections.emptyList();
+				return RArray.empty();
 			}
 
-			return Arrays.asList(
+			return RArray.of(
 				key,
-				property.argument(0).get()
+				RString.simple(String.valueOf(property.argument(0).get()))
 			);
 		}
 
-		return new Error("ERR unknown subcommand '%s'. Try CONFIG HELP.".formatted(action));
+		return new RError("ERR unknown subcommand '%s'. Try CONFIG HELP.".formatted(action));
 	}
 
-	private Object evaluateInfo(List<?> list) {
-		final var action = String.valueOf(list.get(1));
+	private RValue evaluateInfo(RArray<RValue> list) {
+		final var action = (RString) list.get(1);
 
-		if ("REPLICATION".equalsIgnoreCase(action)) {
+		if (RString.equalsIgnoreCase(action, "REPLICATION")) {
 			final var mode = configuration.isSlave()
 				? "slave"
 				: "master";
 
-			return new BulkString("""
+			return RString.bulk("""
 				# Replication
 				role:%s
 				master_replid:%s
@@ -378,51 +362,50 @@ public class Redis {
 				mode,
 				getMasterReplicationId(),
 				replicationOffset
-			)
-			);
+			));
 		}
 
-		return new BulkString("");
+		return RString.empty(true);
 	}
 
-	private Payload evaluateReplicaConfig(List<?> list) {
-		final var action = String.valueOf(list.get(1));
+	private Payload evaluateReplicaConfig(RArray<RValue> list) {
+		final var action = (RString) list.get(1);
 
-		if ("GETACK".equalsIgnoreCase(action)) {
+		if (RString.equalsIgnoreCase(action, "GETACK")) {
 			return new Payload(
-				List.of(
-					new BulkString("REPLCONF"),
-					new BulkString("ACK"),
-					new BulkString(String.valueOf(replicationOffset))
+				RArray.of(
+					RString.bulk("REPLCONF"),
+					RString.bulk("ACK"),
+					RString.bulk(String.valueOf(replicationOffset))
 				),
 				false
 			);
 		}
 
-		return new Payload(Ok.INSTANCE);
+		return new Payload(ROk.INSTANCE);
 	}
 
-	private List<Payload> evaluatePSync(Client client, List<?> list) {
+	private List<Payload> evaluatePSync(Client client, RArray<RValue> list) {
 		client.setReplicate(true);
 
 		replicas.add(client);
 		if (!client.onDisconnect(replicas::remove)) {
 			replicas.remove(client);
-			return List.of(new Payload(new Error("ERR could not enable replica")));
+			return List.of(new Payload(new RError("ERR could not enable replica")));
 		}
 
-		client.command(new Payload("FULLRESYNC %s 0".formatted(getMasterReplicationId())));
-		client.command(new Payload(new BulkBlob(Base64.getDecoder().decode("UkVESVMwMDEx+glyZWRpcy12ZXIFNy4yLjD6CnJlZGlzLWJpdHPAQPoFY3RpbWXCbQi8ZfoIdXNlZC1tZW3CsMQQAPoIYW9mLWJhc2XAAP/wbjv+wP9aog=="))));
+		client.command(new Payload(RString.simple("FULLRESYNC %s 0".formatted(getMasterReplicationId()))));
+		client.command(new Payload(RBlob.bulk(Base64.getDecoder().decode("UkVESVMwMDEx+glyZWRpcy12ZXIFNy4yLjD6CnJlZGlzLWJpdHPAQPoFY3RpbWXCbQi8ZfoIdXNlZC1tZW3CsMQQAPoIYW9mLWJhc2XAAP/wbjv+wP9aog=="))));
 
 		return null;
 	}
 
-	private Object evaluateWait(List<?> list) {
-		final var numberOfReplicas = Integer.valueOf(String.valueOf(list.get(1)));
-		final var timeout = Integer.valueOf(String.valueOf(list.get(2)));
+	private RValue evaluateWait(RArray<RValue> list) {
+		final var numberOfReplicas = ((RString) list.get(1)).asInteger();
+		final var timeout = ((RString) list.get(2)).asInteger();
 
 		if (replicationOffset.get() == 0) {
-			return replicas.size();
+			return RInteger.of(replicas.size());
 		}
 
 		final var acks = new AtomicInteger();
@@ -437,10 +420,10 @@ public class Redis {
 			final var future = new CompletableFuture<Integer>();
 
 			replica.command(new Payload(
-				List.of(
-					new BulkString("REPLCONF"),
-					new BulkString("GETACK"),
-					new BulkString("*")
+				RArray.of(
+					RString.bulk("REPLCONF"),
+					RString.bulk("GETACK"),
+					RString.bulk("*")
 				),
 				false
 			));
@@ -489,20 +472,20 @@ public class Redis {
 
 		futures.forEach((entry) -> entry.getKey().setReplicateConsumer(null));
 
-		return acks.get();
+		return RInteger.of(acks.get());
 	}
 
 	public String getMasterReplicationId() {
 		return configuration.masterReplicationId().argument(0, String.class).get();
 	}
 
-	public void progagate(List<Object> command) {
-		final var payload = new Payload(
+	public void progagate(RArray<RValue> command) {
+		final var payload = new Payload(RArray.view(
 			command.stream()
 				.map(String::valueOf)
-				.map(BulkString::new)
+				.map(RString::bulk)
 				.toList()
-		);
+		));
 
 		replicas.forEach((client) -> {
 			client.command(payload);

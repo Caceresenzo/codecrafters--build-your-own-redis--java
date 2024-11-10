@@ -16,7 +16,7 @@ import lombok.SneakyThrows;
 import redis.Redis;
 import redis.serial.Deserializer;
 import redis.serial.Serializer;
-import redis.type.BulkBlob;
+import redis.type.RBlob;
 import redis.util.TrackedInputStream;
 import redis.util.TrackedOutputStream;
 
@@ -113,7 +113,7 @@ public class Client implements Runnable {
 				serializer.write(command.value());
 				serializer.flush();
 
-				if (command.value() instanceof BulkBlob) {
+				if (command.value() instanceof RBlob) {
 					offset = 0;
 					Redis.log("%d: reset offset".formatted(id));
 				} else {
