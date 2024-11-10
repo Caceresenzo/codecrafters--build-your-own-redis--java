@@ -2,14 +2,14 @@ package redis.type.stream.identifier;
 
 import java.util.regex.Pattern;
 
-import redis.type.Error;
 import redis.type.ErrorException;
+import redis.type.RError;
 
 public sealed interface Identifier permits MillisecondsIdentifier, UniqueIdentifier, WildcardIdentifier {
 
 	public static final Pattern PATTERN = Pattern.compile("^(\\d+)(?:-(\\d+|\\*))?$");
 
-	public static Identifier parse(String input) {
+	public static Identifier parse(CharSequence input) {
 		if (WildcardIdentifier.INSTANCE.toString().equals(input)) {
 			return WildcardIdentifier.INSTANCE;
 		}
@@ -24,7 +24,7 @@ public sealed interface Identifier permits MillisecondsIdentifier, UniqueIdentif
 
 		final var matcher = PATTERN.matcher(input);
 		if (!matcher.find()) {
-			throw new ErrorException(Error.streamIdInvalid());
+			throw new ErrorException(RError.streamIdInvalid());
 		}
 
 		final var milliseconds = Long.parseLong(matcher.group(1));
