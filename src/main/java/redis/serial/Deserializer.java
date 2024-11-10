@@ -3,21 +3,25 @@ package redis.serial;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Collections;
 
 import lombok.RequiredArgsConstructor;
-import redis.type.Error;
+import redis.type.RArray;
+import redis.type.RBlob;
+import redis.type.RError;
+import redis.type.RNil;
+import redis.type.RString;
+import redis.type.RValue;
 
 @RequiredArgsConstructor
 public class Deserializer {
 
 	private final InputStream inputStream;
 
-	public Object read() throws IOException {
+	public RValue read() throws IOException {
 		return read(false);
 	}
 
-	public Object read(boolean likelyBlob) throws IOException {
+	public RValue read(boolean likelyBlob) throws IOException {
 		final var first = inputStream.read();
 		if (first == -1) {
 			return null;
@@ -26,7 +30,7 @@ public class Deserializer {
 		return switch (first) {
 			case Protocol.ARRAY -> parseArray();
 			case Protocol.SIMPLE_STRING -> parseString();
-			case Protocol.SIMPLE_ERROR -> new Error(parseString());
+			case Protocol.SIMPLE_ERROR -> new RError(parseString());
 			case Protocol.BULK_STRING -> likelyBlob ? parseBulkBlob() : parseBulkString();
 
 			default -> {
@@ -40,7 +44,7 @@ public class Deserializer {
 		};
 	}
 
-	private String parseString() throws IOException {
+	private RString parseString() throws IOException {
 		final var builder = new StringBuilder();
 
 		int value;
@@ -53,46 +57,47 @@ public class Deserializer {
 			builder.append((char) value);
 		}
 
-		return builder.toString();
+		return RString.simple(builder.toString());
 	}
 
-	private String parseBulkString() throws IOException {
-		final var length = parseUnsignedInteger();
+	private RString parseBulkString() throws IOException {
+		final var length = parseLength();
 		final var bytes = inputStream.readNBytes(length);
 
 		inputStream.read();
 		inputStream.read();
 		// TODO validate
 
-		return new String(bytes);
+		return RString.bulk(new String(bytes));
 	}
 
-	private byte[] parseBulkBlob() throws IOException {
-		final var length = parseUnsignedInteger();
+	private RBlob parseBulkBlob() throws IOException {
+		final var length = parseLength();
+		final var bytes = inputStream.readNBytes(length);
 
-		return inputStream.readNBytes(length);
+		return RBlob.bulk(bytes);
 	}
 
-	private Object parseArray() throws IOException {
-		final var length = parseUnsignedInteger();
+	private RValue parseArray() throws IOException {
+		final var length = parseLength();
 
 		if (length == -1) {
-			return null;
+			return RNil.SIMPLE;
 		}
 
 		if (length == 0) {
-			return Collections.emptyList();
+			return RArray.empty();
 		}
 
-		final var array = new ArrayList<Object>();
+		final var array = new ArrayList<RValue>();
 		for (int index = 0; index < length; index++) {
 			array.add(read());
 		}
 
-		return array;
+		return RArray.view(array);
 	}
 
-	private int parseUnsignedInteger() throws IOException {
+	private int parseLength() throws IOException {
 		final var line = parseUntilEndOfLine();
 
 		if ("-1".equals(line)) {

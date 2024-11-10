@@ -8,12 +8,12 @@ class UniqueIdentifierTest {
 
 	@Test
 	void compareTo() {
-		assertEquals(-1, UniqueIdentifier.ZERO.compareTo(UniqueIdentifier.MIN));
-		assertEquals(1, UniqueIdentifier.MIN.compareTo(UniqueIdentifier.ZERO));
+		assertEquals(-1, UniqueIdentifier.ZERO.compareTo(UniqueIdentifier.MINIMUM));
+		assertEquals(1, UniqueIdentifier.MINIMUM.compareTo(UniqueIdentifier.ZERO));
 
-		assertEquals(0, UniqueIdentifier.MIN.compareTo(UniqueIdentifier.MIN));
-		assertEquals(1, UniqueIdentifier.MIN.compareTo(new UniqueIdentifier(0, 0)));
-		assertEquals(1, new UniqueIdentifier(10, 0).compareTo(UniqueIdentifier.MIN));
+		assertEquals(0, UniqueIdentifier.MINIMUM.compareTo(UniqueIdentifier.MINIMUM));
+		assertEquals(1, UniqueIdentifier.MINIMUM.compareTo(new UniqueIdentifier(0, 0)));
+		assertEquals(1, new UniqueIdentifier(10, 0).compareTo(UniqueIdentifier.MINIMUM));
 
 		assertEquals(-1, new UniqueIdentifier(5, 0).compareTo(new UniqueIdentifier(10, 0)));
 	}
