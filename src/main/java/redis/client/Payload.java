@@ -1,11 +1,13 @@
 package redis.client;
 
+import redis.type.RValue;
+
 public record Payload(
-	Object value,
+	RValue value,
 	boolean ignorableByReplica
 ) {
 
-	public Payload(Object value) {
+	public Payload(RValue value) {
 		this(value, true);
 	}
 
