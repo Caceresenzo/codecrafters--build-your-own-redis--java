@@ -1,6 +1,6 @@
 package redis.type;
 
-public enum Ok {
+public enum ROk implements RValue {
 
 	INSTANCE;
 

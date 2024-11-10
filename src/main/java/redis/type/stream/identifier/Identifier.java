@@ -2,29 +2,30 @@ package redis.type.stream.identifier;
 
 import java.util.regex.Pattern;
 
-import redis.type.Error;
 import redis.type.ErrorException;
+import redis.type.RError;
+import redis.type.RString;
 
 public sealed interface Identifier permits MillisecondsIdentifier, UniqueIdentifier, WildcardIdentifier {
 
 	public static final Pattern PATTERN = Pattern.compile("^(\\d+)(?:-(\\d+|\\*))?$");
 
-	public static Identifier parse(String input) {
-		if (WildcardIdentifier.INSTANCE.toString().equals(input)) {
+	public static Identifier parse(RString input) {
+		if (RString.equalsIgnoreCase(input, "*")) {
 			return WildcardIdentifier.INSTANCE;
 		}
 
-		if ("-".equals(input)) {
-			return UniqueIdentifier.MIN;
+		if (RString.equalsIgnoreCase(input, "-")) {
+			return UniqueIdentifier.MINIMUM;
 		}
 
-		if ("+".equals(input)) {
-			return UniqueIdentifier.MAX;
+		if (RString.equalsIgnoreCase(input, "+")) {
+			return UniqueIdentifier.MAXIMUM;
 		}
 
 		final var matcher = PATTERN.matcher(input);
 		if (!matcher.find()) {
-			throw new ErrorException(Error.streamIdInvalid());
+			throw new ErrorException(RError.streamIdInvalid());
 		}
 
 		final var milliseconds = Long.parseLong(matcher.group(1));
