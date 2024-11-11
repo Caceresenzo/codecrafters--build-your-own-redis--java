@@ -12,13 +12,10 @@ public record Cell<T>(
 
 		return System.currentTimeMillis() > until;
 	}
-	
-	public boolean isType(Class<?> type) {
-		if (value == null) {
-			return false;
-		}
-		
-		return value.getClass().equals(type);
+
+	@SuppressWarnings("unchecked")
+	public Class<T> type() {
+		return (Class<T>) value.getClass();
 	}
 
 	public static <T> Cell<T> with(T value) {

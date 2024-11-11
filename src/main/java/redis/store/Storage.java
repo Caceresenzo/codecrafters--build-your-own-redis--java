@@ -3,7 +3,6 @@ package redis.store;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import redis.type.RArray;
 import redis.type.RString;
@@ -34,22 +33,17 @@ public class Storage {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T> T append(RString key, Class<T> type, Supplier<Cell<T>> creator, Function<T, T> appender) {
-		return ((Cell<T>) map.compute(
+	public <T, R> R compute(RString key, Function<T, R> remappingFunction) {
+		return ((Cell<R>) map.compute(
 			key.content(),
 			(key_, cell) -> {
-				if (cell != null && (cell.isExpired() || !cell.isType(type))) {
+				if (cell != null && cell.isExpired()) {
 					cell = null;
 				}
 
-				if (cell == null) {
-					cell = (Cell<Object>) creator.get();
-				}
+				final var value = cell != null ? (T) cell.value() : null;
 
-				return new Cell<>(
-					appender.apply((T) cell.value()),
-					cell.until()
-				);
+				return Cell.with(remappingFunction.apply(value));
 			}
 		)).value();
 	}

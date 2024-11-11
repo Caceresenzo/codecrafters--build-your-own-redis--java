@@ -19,7 +19,6 @@ import lombok.RequiredArgsConstructor;
 import redis.client.Client;
 import redis.client.Payload;
 import redis.configuration.Configuration;
-import redis.store.Cell;
 import redis.store.Storage;
 import redis.type.ErrorException;
 import redis.type.RArray;
@@ -191,13 +190,16 @@ public class Redis {
 		final var keyValues = RArray.view(list.subList(3, list.size()));
 
 		final var newIdReference = new AtomicReference<UniqueIdentifier>();
-		storage.append(
+		storage.compute(
 			key,
-			Stream.class,
-			() -> Cell.with(new Stream()),
-			(stream) -> {
+			(previous) -> {
+				final var stream = previous instanceof Stream stream_
+					? stream_
+					: new Stream();
+
 				final var newId = stream.add(id, keyValues);
 				newIdReference.set(newId);
+
 				return stream;
 			}
 		);
@@ -406,8 +408,8 @@ public class Redis {
 	}
 
 	private RValue evaluateWait(RArray<RValue> list) {
-		final var numberOfReplicas = ((RString) list.get(1)).asInteger();
-		final var timeout = ((RString) list.get(2)).asInteger();
+		final var numberOfReplicas = ((RString) list.get(1)).asInteger().getAsInt();
+		final var timeout = ((RString) list.get(2)).asInteger().getAsInt();
 
 		if (replicationOffset.get() == 0) {
 			return RInteger.of(replicas.size());
@@ -483,11 +485,23 @@ public class Redis {
 	private RValue evaluateIncrement(RArray<RValue> list) {
 		final var key = (RString) list.get(1);
 
-		return storage.append(
+		return storage.compute(
 			key,
-			RInteger.class,
-			() -> Cell.with(RInteger.ZERO),
-			RInteger::addOne
+			(previous) -> {
+				if (previous instanceof RString string) {
+					final var intValue = string.asInteger();
+
+					if (intValue.isPresent()) {
+						return RInteger.of(intValue.getAsInt() + 1);
+					}
+				}
+
+				if (previous instanceof RInteger integer) {
+					return integer.addOne();
+				}
+
+				return RInteger.ONE;
+			}
 		);
 	}
 

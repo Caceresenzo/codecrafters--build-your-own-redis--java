@@ -1,5 +1,7 @@
 package redis.type;
 
+import java.util.OptionalInt;
+
 import lombok.NonNull;
 import lombok.experimental.Delegate;
 import redis.serial.Protocol;
@@ -24,8 +26,12 @@ public record RString(
 		return content;
 	}
 
-	public int asInteger() {
-		return Integer.parseInt(content);
+	public OptionalInt asInteger() {
+		try {
+			return OptionalInt.of(Integer.parseInt(content));
+		} catch (NumberFormatException __) {
+			return OptionalInt.empty();
+		}
 	}
 
 	public long asLong() {
