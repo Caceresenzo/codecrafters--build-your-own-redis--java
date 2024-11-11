@@ -127,6 +127,10 @@ public class Redis {
 			return Collections.singletonList(new Payload(evaluateWait(arguments)));
 		}
 
+		if ("INCR".equalsIgnoreCase(command)) {
+			return Collections.singletonList(new Payload(evaluateIncrement(arguments)));
+		}
+
 		return List.of(new Payload(new RError("ERR unknown '%s' command".formatted(command))));
 	}
 
@@ -194,6 +198,7 @@ public class Redis {
 			(stream) -> {
 				final var newId = stream.add(id, keyValues);
 				newIdReference.set(newId);
+				return stream;
 			}
 		);
 
@@ -473,6 +478,17 @@ public class Redis {
 		futures.forEach((entry) -> entry.getKey().setReplicateConsumer(null));
 
 		return RInteger.of(acks.get());
+	}
+
+	private RValue evaluateIncrement(RArray<RValue> list) {
+		final var key = (RString) list.get(1);
+
+		return storage.append(
+			key,
+			RInteger.class,
+			() -> Cell.with(RInteger.ZERO),
+			RInteger::addOne
+		);
 	}
 
 	public String getMasterReplicationId() {

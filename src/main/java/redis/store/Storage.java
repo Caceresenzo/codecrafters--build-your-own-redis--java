@@ -2,7 +2,7 @@ package redis.store;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import redis.type.RArray;
@@ -34,8 +34,8 @@ public class Storage {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T> Cell<T> append(RString key, Class<T> type, Supplier<Cell<T>> creator, Consumer<T> appender) {
-		return (Cell<T>) map.compute(
+	public <T> T append(RString key, Class<T> type, Supplier<Cell<T>> creator, Function<T, T> appender) {
+		return ((Cell<T>) map.compute(
 			key.content(),
 			(key_, cell) -> {
 				if (cell != null && (cell.isExpired() || !cell.isType(type))) {
@@ -46,11 +46,12 @@ public class Storage {
 					cell = (Cell<Object>) creator.get();
 				}
 
-				appender.accept((T) cell.value());
-
-				return cell;
+				return new Cell<>(
+					appender.apply((T) cell.value()),
+					cell.until()
+				);
 			}
-		);
+		)).value();
 	}
 
 	public Object get(RString key) {
