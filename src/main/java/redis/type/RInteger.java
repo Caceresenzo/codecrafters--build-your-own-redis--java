@@ -5,7 +5,7 @@ public record RInteger(
 ) implements RValue {
 
 	public static final RInteger ZERO = of(0);
-	public static final RInteger ONE = of(0);
+	public static final RInteger ONE = of(1);
 
 	public RInteger addOne() {
 		return new RInteger(value + 1);
