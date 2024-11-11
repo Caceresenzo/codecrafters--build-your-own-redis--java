@@ -1,6 +1,7 @@
 package redis;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
@@ -518,11 +519,11 @@ public class Redis {
 	}
 
 	public static void log(String message) {
-		System.out.println("[%d] %s".formatted(ProcessHandle.current().pid(), message));
+		System.out.println("[%d] [%s] %s".formatted(ProcessHandle.current().pid(), LocalDateTime.now(), message));
 	}
 
 	public static void error(String message) {
-		System.err.println("[%d] %s".formatted(ProcessHandle.current().pid(), message));
+		System.err.println("[%d] [%s] %s".formatted(ProcessHandle.current().pid(), LocalDateTime.now(), message));
 	}
 
 }
