@@ -485,24 +485,24 @@ public class Redis {
 	private RValue evaluateIncrement(RArray<RValue> list) {
 		final var key = (RString) list.get(1);
 
-		return storage.compute(
+		final var newValueReference = new AtomicInteger();
+		storage.compute(
 			key,
 			(previous) -> {
+				var value = 0;
+
 				if (previous instanceof RString string) {
-					final var intValue = string.asInteger();
-
-					if (intValue.isPresent()) {
-						return RInteger.of(intValue.getAsInt() + 1);
-					}
+					value = string.asInteger().getAsInt();
 				}
 
-				if (previous instanceof RInteger integer) {
-					return integer.addOne();
-				}
+				final var newValue = value + 1;
+				newValueReference.set(newValue);
 
-				return RInteger.ONE;
+				return RString.simple(String.valueOf(newValue));
 			}
 		);
+
+		return RInteger.of(newValueReference.get());
 	}
 
 	public String getMasterReplicationId() {
