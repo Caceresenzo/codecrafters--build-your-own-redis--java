@@ -2,7 +2,7 @@ package redis.type.stream.identifier;
 
 import java.util.regex.Pattern;
 
-import redis.type.ErrorException;
+import redis.type.RErrorException;
 import redis.type.RError;
 import redis.type.RString;
 
@@ -25,7 +25,7 @@ public sealed interface Identifier permits MillisecondsIdentifier, UniqueIdentif
 
 		final var matcher = PATTERN.matcher(input);
 		if (!matcher.find()) {
-			throw new ErrorException(RError.streamIdInvalid());
+			throw new RErrorException(RError.streamIdInvalid());
 		}
 
 		final var milliseconds = Long.parseLong(matcher.group(1));

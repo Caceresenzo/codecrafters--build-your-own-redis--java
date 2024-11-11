@@ -21,10 +21,10 @@ import redis.client.Client;
 import redis.client.Payload;
 import redis.configuration.Configuration;
 import redis.store.Storage;
-import redis.type.ErrorException;
 import redis.type.RArray;
 import redis.type.RBlob;
 import redis.type.RError;
+import redis.type.RErrorException;
 import redis.type.RInteger;
 import redis.type.RNil;
 import redis.type.ROk;
@@ -49,7 +49,7 @@ public class Redis {
 			if (value instanceof RArray array) {
 				try {
 					return evaluate(client, array, read);
-				} catch (ErrorException exception) {
+				} catch (RErrorException exception) {
 					return List.of(new Payload(exception.getError()));
 				}
 			}
@@ -493,7 +493,7 @@ public class Redis {
 				var value = 0;
 
 				if (previous instanceof RString string) {
-					value = string.asInteger().getAsInt();
+					value = string.asInteger().orElseThrow(() -> RError.incrValueOutOfRange().asException());
 				}
 
 				final var newValue = value + 1;

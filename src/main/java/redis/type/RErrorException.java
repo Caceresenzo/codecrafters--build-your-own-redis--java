@@ -3,12 +3,12 @@ package redis.type;
 import lombok.Getter;
 
 @SuppressWarnings("serial")
-public class ErrorException extends RuntimeException {
+public class RErrorException extends RuntimeException {
 
 	@Getter
 	private final RError error;
 
-	public ErrorException(RError error) {
+	public RErrorException(RError error) {
 		this.error = error;
 	}
 
