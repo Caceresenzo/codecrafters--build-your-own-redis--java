@@ -80,6 +80,24 @@ public class Redis {
 			return Collections.singletonList(new Payload(ROk.OK));
 		}
 
+		if ("EXEC".equalsIgnoreCase(command)) {
+			if (queuedCommands == null) {
+				throw RError.execNotInTransaction().asException();
+			}
+
+			client.setQueuedCommands(null);
+
+			final var values = RArray.view(
+				queuedCommands.stream()
+					.map((command_) -> evaluate(client, command_, client.getOffset()))
+					.flatMap(List::stream)
+					.map(Payload::value)
+					.toList()
+			);
+
+			return Collections.singletonList(new Payload(values));
+		}
+
 		if (queuedCommands != null) {
 			queuedCommands.add(arguments);
 
