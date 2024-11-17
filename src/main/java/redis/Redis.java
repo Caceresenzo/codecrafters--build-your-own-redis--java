@@ -82,7 +82,7 @@ public class Redis {
 
 		if ("EXEC".equalsIgnoreCase(command)) {
 			if (queuedCommands == null) {
-				throw RError.execNotInTransaction().asException();
+				throw RError.execWithoutMulti().asException();
 			}
 
 			client.setQueuedCommands(null);
