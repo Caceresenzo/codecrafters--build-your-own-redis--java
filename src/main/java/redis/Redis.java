@@ -66,7 +66,9 @@ public class Redis {
 			return List.of(new Payload(new RError("ERR command array is empty")));
 		}
 
-		final var queuedCommands = client.getQueuedCommands();
+		final var queuedCommands = client != null
+			? client.getQueuedCommands()
+			: null;
 
 		final var command = ((RString) arguments.getFirst()).content();
 
