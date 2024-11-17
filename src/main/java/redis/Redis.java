@@ -48,7 +48,7 @@ public class Redis {
 		try {
 			if (value instanceof RArray array) {
 				try {
-					return evaluate(client, array, read);
+					return execute(client, array, read);
 				} catch (RErrorException exception) {
 					return List.of(new Payload(exception.getError()));
 				}
@@ -61,7 +61,7 @@ public class Redis {
 		}
 	}
 
-	private List<Payload> evaluate(Client client, RArray<RValue> arguments, long read) {
+	private List<Payload> execute(Client client, RArray<RValue> arguments, long read) {
 		if (arguments.isEmpty()) {
 			return List.of(new Payload(new RError("ERR command array is empty")));
 		}
