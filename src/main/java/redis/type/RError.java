@@ -11,6 +11,7 @@ public record RError(
 	private static final RError INCR_VALUE_OUT_OF_RANGE = new RError("ERR value is not an integer or out of range");
 	private static final RError MULTI_ALREADY_IN_TRANSACTION = new RError("ERR already in transaction");
 	private static final RError EXEC_WITHOUT_MULTI = new RError("ERR EXEC without MULTI");
+	private static final RError DISCARD_WITHOUT_MULTI = new RError("ERR DISCARD without MULTI");
 
 	public RError(String message) {
 		this(RString.simple(message));
@@ -46,6 +47,10 @@ public record RError(
 
 	public static RError execWithoutMulti() {
 		return EXEC_WITHOUT_MULTI;
+	}
+
+	public static RError discardWithoutMulti() {
+		return DISCARD_WITHOUT_MULTI;
 	}
 
 }

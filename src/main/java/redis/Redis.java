@@ -80,6 +80,16 @@ public class Redis {
 			return Collections.singletonList(new Payload(ROk.OK));
 		}
 
+		if ("DISCARD".equalsIgnoreCase(command)) {
+			if (queuedCommands == null) {
+				throw RError.discardWithoutMulti().asException();
+			}
+
+			client.setQueuedCommands(null);
+
+			return Collections.singletonList(new Payload(ROk.OK));
+		}
+
 		if ("EXEC".equalsIgnoreCase(command)) {
 			if (queuedCommands == null) {
 				throw RError.execWithoutMulti().asException();
