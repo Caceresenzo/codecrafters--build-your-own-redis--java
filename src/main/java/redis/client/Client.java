@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.Socket;
+import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -16,7 +17,9 @@ import lombok.SneakyThrows;
 import redis.Redis;
 import redis.serial.Deserializer;
 import redis.serial.Serializer;
+import redis.type.RArray;
 import redis.type.RBlob;
+import redis.type.RValue;
 import redis.util.TrackedInputStream;
 import redis.util.TrackedOutputStream;
 
@@ -33,6 +36,7 @@ public class Client implements Runnable {
 	private @Getter @Setter long offset = 0;
 	private final BlockingQueue<Payload> pendingCommands = new ArrayBlockingQueue<>(128, true);
 	private @Setter Consumer<Object> replicateConsumer;
+	private @Getter @Setter List<RArray<RValue>> queuedCommands;
 
 	public Client(Socket socket, Redis evaluator) throws IOException {
 		this.id = ID_INCREMENT.incrementAndGet();

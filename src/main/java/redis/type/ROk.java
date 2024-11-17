@@ -2,11 +2,15 @@ package redis.type;
 
 public enum ROk implements RValue {
 
-	INSTANCE;
+	OK,
+	QUEUED;
 
 	@Override
 	public String toString() {
-		return "OK";
+		return switch (this) {
+			case OK -> "OK";
+			case QUEUED -> "QUEUED";
+		};
 	}
 
 }

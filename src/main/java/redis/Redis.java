@@ -66,7 +66,25 @@ public class Redis {
 			return List.of(new Payload(new RError("ERR command array is empty")));
 		}
 
+		final var queuedCommands = client.getQueuedCommands();
+
 		final var command = ((RString) arguments.getFirst()).content();
+
+		if ("MULTI".equalsIgnoreCase(command)) {
+			if (queuedCommands != null) {
+				throw RError.multiAlreadyInTransaction().asException();
+			}
+
+			client.setQueuedCommands(new ArrayList<>());
+
+			return Collections.singletonList(new Payload(ROk.OK));
+		}
+
+		if (queuedCommands != null) {
+			queuedCommands.add(arguments);
+
+			return Collections.singletonList(new Payload(ROk.QUEUED));
+		}
 
 		if ("PING".equalsIgnoreCase(command)) {
 			return Collections.singletonList(new Payload(evaluatePing(arguments)));
@@ -166,7 +184,7 @@ public class Redis {
 			storage.set(key, value);
 		}
 
-		return ROk.INSTANCE;
+		return ROk.OK;
 	}
 
 	private RValue evaluateGet(RArray<RValue> list) {
@@ -390,7 +408,7 @@ public class Redis {
 			);
 		}
 
-		return new Payload(ROk.INSTANCE);
+		return new Payload(ROk.OK);
 	}
 
 	private List<Payload> evaluatePSync(Client client, RArray<RValue> list) {

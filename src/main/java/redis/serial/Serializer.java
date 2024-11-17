@@ -2,6 +2,7 @@ package redis.serial;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import lombok.RequiredArgsConstructor;
@@ -18,7 +19,8 @@ import redis.type.RValue;
 public class Serializer {
 
 	private static final byte[] CRLF_BYTES = Protocol.CRLF.getBytes();
-	private static final byte[] OK_BYTES = { 'O', 'K' };
+	private static final byte[] OK_BYTES = "OK".getBytes(StandardCharsets.US_ASCII);
+	private static final byte[] QUEUED_BYTES = "QUEUED".getBytes(StandardCharsets.US_ASCII);
 	private static final byte[] MINUS_ONE_BYTES = { '-', '1' };
 
 	private final OutputStream outputStream;
@@ -47,7 +49,12 @@ public class Serializer {
 					writeNil();
 				}
 			}
-			case ROk ok -> writeOk();
+			case ROk ok -> {
+				switch (ok) {
+					case OK -> writeOk();
+					case QUEUED -> writeQueued();
+				}
+			}
 			case RString string -> {
 				if (string.bulk()) {
 					writeBulkString(string.content());
@@ -111,6 +118,12 @@ public class Serializer {
 	private void writeOk() throws IOException {
 		outputStream.write(Protocol.SIMPLE_STRING);
 		outputStream.write(OK_BYTES);
+		outputStream.write(CRLF_BYTES);
+	}
+
+	private void writeQueued() throws IOException {
+		outputStream.write(Protocol.SIMPLE_STRING);
+		outputStream.write(QUEUED_BYTES);
 		outputStream.write(CRLF_BYTES);
 	}
 
