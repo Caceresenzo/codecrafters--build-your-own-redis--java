@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -170,6 +171,31 @@ public class Client implements Runnable {
 			disconnectListener = listener;
 			return true;
 		}
+	}
+
+	public boolean isInTransaction() {
+		return queuedCommands != null;
+	}
+
+	public void beginTransaction() {
+		queuedCommands = new ArrayList<>();
+	}
+
+	public List<RArray<RValue>> discardTransaction() {
+		final var commands = queuedCommands;
+
+		queuedCommands = null;
+
+		return commands;
+	}
+
+	public boolean queueCommand(RArray<RValue> command) {
+		if (isInTransaction()) {
+			queuedCommands.add(command);
+			return true;
+		}
+
+		return false;
 	}
 
 }

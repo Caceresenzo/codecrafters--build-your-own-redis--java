@@ -66,53 +66,21 @@ public class Redis {
 			return List.of(new Payload(new RError("ERR command array is empty")));
 		}
 
-		final var queuedCommands = client != null
-			? client.getQueuedCommands()
-			: null;
-
 		final var command = ((RString) arguments.getFirst()).content();
 
 		if ("MULTI".equalsIgnoreCase(command)) {
-			if (queuedCommands != null) {
-				throw RError.multiAlreadyInTransaction().asException();
-			}
-
-			client.setQueuedCommands(new ArrayList<>());
-
-			return Collections.singletonList(new Payload(ROk.OK));
+			return Collections.singletonList(new Payload(evaluateMulti(client)));
 		}
 
 		if ("DISCARD".equalsIgnoreCase(command)) {
-			if (queuedCommands == null) {
-				throw RError.discardWithoutMulti().asException();
-			}
-
-			client.setQueuedCommands(null);
-
-			return Collections.singletonList(new Payload(ROk.OK));
+			return Collections.singletonList(new Payload(evaluateDiscard(client)));
 		}
 
 		if ("EXEC".equalsIgnoreCase(command)) {
-			if (queuedCommands == null) {
-				throw RError.execWithoutMulti().asException();
-			}
-
-			client.setQueuedCommands(null);
-
-			final var values = RArray.view(
-				queuedCommands.stream()
-					.map((command_) -> evaluate(client, command_, client.getOffset()))
-					.flatMap(List::stream)
-					.map(Payload::value)
-					.toList()
-			);
-
-			return Collections.singletonList(new Payload(values));
+			return Collections.singletonList(new Payload(evaluateExec(client)));
 		}
 
-		if (queuedCommands != null) {
-			queuedCommands.add(arguments);
-
+		if (client != null && client.queueCommand(arguments)) {
 			return Collections.singletonList(new Payload(ROk.QUEUED));
 		}
 
@@ -180,6 +148,41 @@ public class Redis {
 		}
 
 		return List.of(new Payload(new RError("ERR unknown '%s' command".formatted(command))));
+	}
+
+	private RValue evaluateMulti(Client client) {
+		if (client.isInTransaction()) {
+			throw RError.multiAlreadyInTransaction().asException();
+		}
+
+		client.beginTransaction();
+
+		return ROk.OK;
+	}
+
+	private RValue evaluateDiscard(Client client) {
+		if (!client.isInTransaction()) {
+			throw RError.discardWithoutMulti().asException();
+		}
+
+		client.discardTransaction();
+
+		return ROk.OK;
+	}
+
+	private RValue evaluateExec(Client client) {
+		if (!client.isInTransaction()) {
+			throw RError.execWithoutMulti().asException();
+		}
+
+		return RArray.view(
+			client.discardTransaction()
+				.stream()
+				.map((command_) -> evaluate(client, command_, client.getOffset()))
+				.flatMap(List::stream)
+				.map(Payload::value)
+				.toList()
+		);
 	}
 
 	private RValue evaluatePing(RArray<RValue> list) {
