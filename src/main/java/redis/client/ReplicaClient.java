@@ -53,18 +53,16 @@ public class ReplicaClient implements Runnable {
 				final var read = inputStream.count();
 
 				Redis.log("replica: received (%s): %s".formatted(read, request));
-				final var values = redis.evaluate(null, request, read);
+				final var response = redis.evaluate(null, request, read);
 
-				if (values == null) {
-					Redis.log("replica: no answer");
+				if (response == null) {
+					Redis.log("replica: no response");
 					continue;
-				}
+				} else {
+					Redis.log("replica: responding: %s".formatted(response));
 
-				for (var answer : values) {
-					Redis.log("replica: answering: %s".formatted(answer));
-
-					if (!answer.ignorableByReplica()) {
-						serializer.write(answer.value());
+					if (!response.ignorableByReplica()) {
+						serializer.write(response.value());
 					}
 				}
 

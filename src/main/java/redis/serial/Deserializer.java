@@ -34,10 +34,10 @@ public class Deserializer {
 			case Protocol.BULK_STRING -> likelyBlob ? parseBulkBlob() : parseBulkString();
 
 			default -> {
-				//				System.out.print((char) first);
-				//				while (true) {
-				//					System.out.print((char) inputStream.read());
-				//				}
+				// System.out.print((char) first);
+				// while (true) {
+				// 	System.out.print((char) inputStream.read());
+				// }
 
 				throw new IllegalArgumentException("Unexpected value: %s (%s)".formatted(first, (char) first));
 			}

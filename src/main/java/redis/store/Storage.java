@@ -1,5 +1,6 @@
 package redis.store;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
@@ -20,8 +21,8 @@ public class Storage {
 		System.out.println(map);
 	}
 
-	public void set(RString key, Object value, long milliseconds) {
-		map.put(key.content(), Cell.expiry(value, milliseconds));
+	public void set(RString key, Object value, Duration milliseconds) {
+		map.put(key.content(), Cell.expiry(value, milliseconds.toMillis()));
 	}
 
 	public void put(RString key, Cell<Object> cell) {

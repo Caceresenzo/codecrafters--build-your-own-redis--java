@@ -16,11 +16,11 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import redis.Redis;
+import redis.command.CommandResponse;
+import redis.command.ParsedCommand;
 import redis.serial.Deserializer;
 import redis.serial.Serializer;
-import redis.type.RArray;
 import redis.type.RBlob;
-import redis.type.RValue;
 import redis.util.TrackedInputStream;
 import redis.util.TrackedOutputStream;
 
@@ -35,9 +35,9 @@ public class Client implements Runnable {
 	private Consumer<Client> disconnectListener;
 	private @Setter boolean replicate;
 	private @Getter @Setter long offset = 0;
-	private final BlockingQueue<Payload> pendingCommands = new ArrayBlockingQueue<>(128, true);
+	private final BlockingQueue<CommandResponse> pendingCommands = new ArrayBlockingQueue<>(128, true);
 	private @Setter Consumer<Object> replicateConsumer;
-	private @Getter @Setter List<RArray<RValue>> queuedCommands;
+	private @Getter @Setter List<ParsedCommand> queuedCommands;
 
 	public Client(Socket socket, Redis evaluator) throws IOException {
 		this.id = ID_INCREMENT.incrementAndGet();
@@ -69,16 +69,14 @@ public class Client implements Runnable {
 				final var read = inputStream.count();
 
 				Redis.log("%d: received (%d): %s".formatted(id, read, request));
-				final var values = evaluator.evaluate(this, request, read);
+				final var response = evaluator.evaluate(this, request, read);
 
-				if (values == null) {
-					Redis.log("%d: no answer".formatted(id));
+				if (response == null) {
+					Redis.log("%d: no response".formatted(id));
 					continue;
-				}
-
-				for (var answer : values) {
-					Redis.log("%d: answering: %s".formatted(id, answer));
-					serializer.write(answer.value());
+				} else {
+					Redis.log("%d: responding: %s".formatted(id, response));
+					serializer.write(response.value());
 				}
 
 				outputStream.flush();
@@ -148,7 +146,7 @@ public class Client implements Runnable {
 		}
 	}
 
-	public void command(Payload value) {
+	public void command(CommandResponse value) {
 		final var inserted = pendingCommands.offer(value);
 		Redis.log("%d: queue command: %s - inserted?=%s newSize=%s".formatted(id, value, inserted, pendingCommands.size()));
 
@@ -181,7 +179,7 @@ public class Client implements Runnable {
 		queuedCommands = new ArrayList<>();
 	}
 
-	public List<RArray<RValue>> discardTransaction() {
+	public List<ParsedCommand> discardTransaction() {
 		final var commands = queuedCommands;
 
 		queuedCommands = null;
@@ -189,7 +187,7 @@ public class Client implements Runnable {
 		return commands;
 	}
 
-	public boolean queueCommand(RArray<RValue> command) {
+	public boolean queueCommand(ParsedCommand command) {
 		if (isInTransaction()) {
 			queuedCommands.add(command);
 			return true;

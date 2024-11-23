@@ -1,13 +1,13 @@
-package redis.client;
+package redis.command;
 
 import redis.type.RValue;
 
-public record Payload(
+public record CommandResponse(
 	RValue value,
 	boolean ignorableByReplica
 ) {
 
-	public Payload(RValue value) {
+	public CommandResponse(RValue value) {
 		this(value, true);
 	}
 

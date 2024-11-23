@@ -8,10 +8,6 @@ public record RError(
 	private static final RError STREAM_ID_INVALID = new RError("ERR Invalid stream ID specified as stream command argument");
 	private static final RError XADD_ID_EQUAL_OR_SMALLER = new RError("ERR The ID specified in XADD is equal or smaller than the target stream top item");
 	private static final RError XADD_ID_GREATER_0_0 = new RError("ERR The ID specified in XADD must be greater than 0-0");
-	private static final RError INCR_VALUE_OUT_OF_RANGE = new RError("ERR value is not an integer or out of range");
-	private static final RError MULTI_ALREADY_IN_TRANSACTION = new RError("ERR already in transaction");
-	private static final RError EXEC_WITHOUT_MULTI = new RError("ERR EXEC without MULTI");
-	private static final RError DISCARD_WITHOUT_MULTI = new RError("ERR DISCARD without MULTI");
 
 	public RError(String message) {
 		this(RString.simple(message));
@@ -35,22 +31,6 @@ public record RError(
 
 	public static RError xaddIdGreater00() {
 		return XADD_ID_GREATER_0_0;
-	}
-
-	public static RError incrValueOutOfRange() {
-		return INCR_VALUE_OUT_OF_RANGE;
-	}
-
-	public static RError multiAlreadyInTransaction() {
-		return MULTI_ALREADY_IN_TRANSACTION;
-	}
-
-	public static RError execWithoutMulti() {
-		return EXEC_WITHOUT_MULTI;
-	}
-
-	public static RError discardWithoutMulti() {
-		return DISCARD_WITHOUT_MULTI;
 	}
 
 }

@@ -1,5 +1,7 @@
 package redis.type;
 
+import java.time.Duration;
+import java.time.temporal.TemporalUnit;
 import java.util.OptionalInt;
 
 import lombok.NonNull;
@@ -11,7 +13,6 @@ public record RString(
 	boolean bulk
 ) implements RValue, CharSequence {
 
-	private static final RString PONG = new RString("PONG", false);
 	private static final RString EMPTY_SIMPLE = new RString("", false);
 	private static final RString EMPTY_BULK = new RString("", true);
 
@@ -36,6 +37,10 @@ public record RString(
 
 	public long asLong() {
 		return Long.parseLong(content);
+	}
+
+	public Duration asDuration(TemporalUnit temporalUnit) {
+		return Duration.of(asLong(), temporalUnit);
 	}
 
 	public String toString() {
@@ -77,10 +82,6 @@ public record RString(
 
 	public static boolean equalsIgnoreCase(@NonNull RString left, @NonNull String right) {
 		return left.content.equalsIgnoreCase(right);
-	}
-
-	public static RString pong() {
-		return PONG;
 	}
 
 	public static RString empty(boolean bulk) {
