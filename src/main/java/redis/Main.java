@@ -8,7 +8,7 @@ import java.nio.file.Paths;
 import java.util.stream.Collectors;
 
 import lombok.SneakyThrows;
-import redis.client.Client;
+import redis.client.SocketClient;
 import redis.client.ReplicaClient;
 import redis.configuration.Configuration;
 import redis.rdb.RdbLoader;
@@ -79,7 +79,7 @@ public class Main {
 
 			while (true) {
 				final var socket = serverSocket.accept();
-				final var client = new Client(socket, redis);
+				final var client = new SocketClient(socket, redis);
 
 				final var thread = threadFactory.newThread(client);
 				thread.start();

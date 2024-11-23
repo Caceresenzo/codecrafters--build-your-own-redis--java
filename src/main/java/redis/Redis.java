@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import redis.client.Client;
+import redis.client.SocketClient;
 import redis.command.CommandParser;
 import redis.command.CommandResponse;
 import redis.command.ParsedCommand;
@@ -25,7 +26,7 @@ public class Redis {
 
 	private final @Getter Storage storage;
 	private final @Getter Configuration configuration;
-	private final @Getter List<Client> replicas = Collections.synchronizedList(new ArrayList<>());
+	private final @Getter List<SocketClient> replicas = Collections.synchronizedList(new ArrayList<>());
 	private @Getter AtomicLong replicationOffset = new AtomicLong();
 	private final CommandParser commandParser = new CommandParser();
 
@@ -64,9 +65,8 @@ public class Redis {
 	private CommandResponse doExecute(Client client, ParsedCommand parsedCommand) {
 		final var command = parsedCommand.command();
 
-		final var inTransaction = client.isInTransaction();
-		if (inTransaction && command.isQueueable()) {
-			client.queueCommand(parsedCommand);
+		if (client instanceof SocketClient socketClient && socketClient.isInTransaction() && command.isQueueable()) {
+			socketClient.queueCommand(parsedCommand);
 			return new CommandResponse(ROk.QUEUED);
 		}
 

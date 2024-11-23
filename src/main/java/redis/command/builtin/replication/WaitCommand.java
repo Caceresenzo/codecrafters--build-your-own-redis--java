@@ -11,6 +11,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import redis.Redis;
 import redis.client.Client;
+import redis.client.SocketClient;
 import redis.command.Command;
 import redis.command.CommandResponse;
 import redis.type.RArray;
@@ -32,7 +33,7 @@ public record WaitCommand(
 
 		final var acks = new AtomicInteger();
 
-		final var futures = new ArrayList<Map.Entry<Client, Future<Integer>>>(replicas.size());
+		final var futures = new ArrayList<Map.Entry<SocketClient, Future<Integer>>>(replicas.size());
 		replicas.forEach((replica) -> {
 			if (replica.getOffset() == 0) {
 				acks.incrementAndGet();

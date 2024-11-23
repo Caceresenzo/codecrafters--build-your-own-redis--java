@@ -16,7 +16,7 @@ import redis.type.RString;
 import redis.type.RValue;
 import redis.util.TrackedInputStream;
 
-public class ReplicaClient implements Runnable {
+public class ReplicaClient implements Client, Runnable {
 
 	private final Socket socket;
 	private final Redis redis;
@@ -53,7 +53,7 @@ public class ReplicaClient implements Runnable {
 				final var read = inputStream.count();
 
 				Redis.log("replica: received (%s): %s".formatted(read, request));
-				final var response = redis.evaluate(null, request, read);
+				final var response = redis.evaluate(this, request, read);
 
 				if (response == null) {
 					Redis.log("replica: no response");

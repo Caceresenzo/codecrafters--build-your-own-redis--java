@@ -2,6 +2,7 @@ package redis.command.builtin.transaction;
 
 import redis.Redis;
 import redis.client.Client;
+import redis.client.SocketClient;
 import redis.command.Command;
 import redis.command.CommandResponse;
 import redis.type.RError;
@@ -13,11 +14,13 @@ public record MultiCommand() implements Command {
 
 	@Override
 	public CommandResponse execute(Redis redis, Client client) {
-		if (client.isInTransaction()) {
+		final var socketClient = SocketClient.cast(client);
+
+		if (socketClient.isInTransaction()) {
 			throw ALREADY_IN_TRANSACTION.asException();
 		}
 
-		client.beginTransaction();
+		socketClient.beginTransaction();
 
 		return new CommandResponse(ROk.OK);
 	}
