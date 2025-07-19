@@ -7,6 +7,7 @@ import redis.client.Client;
 import redis.command.Command;
 import redis.command.CommandResponse;
 import redis.type.RArray;
+import redis.type.RError;
 import redis.type.RInteger;
 import redis.type.RString;
 import redis.type.RValue;
@@ -23,13 +24,19 @@ public record RPushCommand(
 		return new CommandResponse(RInteger.of(array.size()));
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public RArray<RString> apply(RValue oldValue) {
 		if (oldValue == null) {
 			return RArray.copy(values);
 		}
 
-		throw new UnsupportedOperationException();
+		if (oldValue instanceof RArray array) {
+			array.addAll(values);
+			return array;
+		}
+
+		throw RError.wrongtypeWrongKindOfValue().asException();
 	}
 
 	@Override

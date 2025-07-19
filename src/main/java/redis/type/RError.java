@@ -8,6 +8,7 @@ public record RError(
 	private static final RError STREAM_ID_INVALID = new RError("ERR Invalid stream ID specified as stream command argument");
 	private static final RError XADD_ID_EQUAL_OR_SMALLER = new RError("ERR The ID specified in XADD is equal or smaller than the target stream top item");
 	private static final RError XADD_ID_GREATER_0_0 = new RError("ERR The ID specified in XADD must be greater than 0-0");
+	private static final RError WRONGTYPE_WRONG_KIND_OF_VALUE = new RError("WRONGTYPE Operation against a key holding the wrong kind of value");
 
 	public RError(String message) {
 		this(RString.simple(message));
@@ -31,6 +32,10 @@ public record RError(
 
 	public static RError xaddIdGreater00() {
 		return XADD_ID_GREATER_0_0;
+	}
+
+	public static RError wrongtypeWrongKindOfValue() {
+		return WRONGTYPE_WRONG_KIND_OF_VALUE;
 	}
 
 }

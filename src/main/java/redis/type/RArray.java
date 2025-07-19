@@ -20,6 +20,10 @@ public record RArray<T extends RValue>(
 		return items;
 	}
 
+	public boolean addAll(@NonNull RArray<? extends T> collection) {
+		return items.addAll(collection.items());
+	}
+
 	@Override
 	public final String toString() {
 		return "RArray[%s]".formatted(items);
