@@ -20,6 +20,7 @@ import redis.command.builtin.core.KeysCommand;
 import redis.command.builtin.core.PingCommand;
 import redis.command.builtin.core.SetCommand;
 import redis.command.builtin.core.TypeCommand;
+import redis.command.builtin.list.LRangeCommand;
 import redis.command.builtin.list.RPushCommand;
 import redis.command.builtin.replication.PSyncCommand;
 import redis.command.builtin.replication.ReplConfCommand;
@@ -64,6 +65,7 @@ public class CommandParser {
 		register("TYPE", singleArgumentCommand(TypeCommand::new));
 
 		register("RPUSH", this::parseRPush);
+		register("LRANGE", this::parseLRange);
 	}
 
 	public void register(String name, BiFunction<String, List<RString>, Command> parser) {
@@ -233,7 +235,7 @@ public class CommandParser {
 
 		return new SetCommand(key, value, expiration);
 	}
-	
+
 	private RPushCommand parseRPush(String name, List<RString> arguments) {
 		if (arguments.size() < 2) {
 			throw wrongNumberOfArguments(name).asException();
@@ -243,6 +245,18 @@ public class CommandParser {
 		final var values = RArray.copy(arguments.subList(1, arguments.size()));
 
 		return new RPushCommand(key, values);
+	}
+
+	private LRangeCommand parseLRange(String name, List<RString> arguments) {
+		if (arguments.size() != 3) {
+			throw wrongNumberOfArguments(name).asException();
+		}
+
+		final var key = arguments.get(0);
+		final var startIndex = arguments.get(1).asInteger().getAsInt();
+		final var endIndex = arguments.get(2).asInteger().getAsInt();
+
+		return new LRangeCommand(key, startIndex, endIndex);
 	}
 
 	private RError wrongNumberOfArguments(String name) {

@@ -54,8 +54,6 @@ public class Storage {
 	}
 
 	public Object get(String key) {
-		System.out.println(key);
-		System.out.println(map);
 		final var cell = map.computeIfPresent(
 			key,
 			(key_, value) -> {
