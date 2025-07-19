@@ -1,4 +1,4 @@
-package redis.command.builtin;
+package redis.command.builtin.core;
 
 import redis.Redis;
 import redis.client.Client;

@@ -11,15 +11,16 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import redis.command.builtin.ConfigCommand;
-import redis.command.builtin.EchoCommand;
-import redis.command.builtin.GetCommand;
-import redis.command.builtin.IncrCommand;
-import redis.command.builtin.InfoCommand;
-import redis.command.builtin.KeysCommand;
-import redis.command.builtin.PingCommand;
-import redis.command.builtin.SetCommand;
-import redis.command.builtin.TypeCommand;
+import redis.command.builtin.core.ConfigCommand;
+import redis.command.builtin.core.EchoCommand;
+import redis.command.builtin.core.GetCommand;
+import redis.command.builtin.core.IncrCommand;
+import redis.command.builtin.core.InfoCommand;
+import redis.command.builtin.core.KeysCommand;
+import redis.command.builtin.core.PingCommand;
+import redis.command.builtin.core.SetCommand;
+import redis.command.builtin.core.TypeCommand;
+import redis.command.builtin.list.RPushCommand;
 import redis.command.builtin.replication.PSyncCommand;
 import redis.command.builtin.replication.ReplConfCommand;
 import redis.command.builtin.replication.WaitCommand;
@@ -61,6 +62,8 @@ public class CommandParser {
 		register("PING", noArgumentCommand(PingCommand::new));
 		register("SET", this::parseSet);
 		register("TYPE", singleArgumentCommand(TypeCommand::new));
+
+		register("RPUSH", this::parseRPush);
 	}
 
 	public void register(String name, BiFunction<String, List<RString>, Command> parser) {
@@ -229,6 +232,17 @@ public class CommandParser {
 		}
 
 		return new SetCommand(key, value, expiration);
+	}
+	
+	private RPushCommand parseRPush(String name, List<RString> arguments) {
+		if (arguments.size() < 2) {
+			throw wrongNumberOfArguments(name).asException();
+		}
+
+		final var key = arguments.get(0);
+		final var values = RArray.copy(arguments.subList(1, arguments.size()));
+
+		return new RPushCommand(key, values);
 	}
 
 	private RError wrongNumberOfArguments(String name) {

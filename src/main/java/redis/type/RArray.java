@@ -41,6 +41,10 @@ public record RArray<T extends RValue>(
 		return new RArray<>(list);
 	}
 
+	public static <T extends RValue> RArray<T> copy(@NonNull RArray<T> list) {
+		return copy(list.items());
+	}
+
 	public static <T extends RValue> RArray<T> copy(@NonNull Collection<T> list) {
 		return new RArray<>(new ArrayList<>(list));
 	}
