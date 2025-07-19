@@ -24,6 +24,14 @@ public record RArray<T extends RValue>(
 		return items.addAll(collection.items());
 	}
 
+	public boolean addAll(int index, @NonNull RArray<? extends T> collection) {
+		return items.addAll(index, collection.items());
+	}
+
+	public RArray<T> reversed() {
+		return view(items.reversed());
+	}
+
 	@Override
 	public final String toString() {
 		return "RArray[%s]".formatted(items);
