@@ -20,6 +20,7 @@ import redis.command.builtin.core.KeysCommand;
 import redis.command.builtin.core.PingCommand;
 import redis.command.builtin.core.SetCommand;
 import redis.command.builtin.core.TypeCommand;
+import redis.command.builtin.list.LLenCommand;
 import redis.command.builtin.list.LPushCommand;
 import redis.command.builtin.list.LRangeCommand;
 import redis.command.builtin.list.RPushCommand;
@@ -68,6 +69,7 @@ public class CommandParser {
 		register("RPUSH", this::parseListPush);
 		register("LPUSH", this::parseListPush);
 		register("LRANGE", this::parseLRange);
+		register("LLEN", singleArgumentCommand(LLenCommand::new));
 	}
 
 	public void register(String name, BiFunction<String, List<RString>, Command> parser) {
