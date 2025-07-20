@@ -276,8 +276,11 @@ public class CommandParser {
 		}
 
 		final var key = arguments.get(0);
+		final var count = argumentsSize == 2
+			? arguments.get(1).asInteger().getAsInt()
+			: 1;
 
-		return new LPopCommand(key);
+		return new LPopCommand(key, count);
 	}
 
 	private RError wrongNumberOfArguments(String name) {

@@ -1,5 +1,7 @@
 package redis.command.builtin.list;
 
+import java.util.ArrayList;
+
 import redis.Redis;
 import redis.client.Client;
 import redis.command.Command;
@@ -9,7 +11,8 @@ import redis.type.RNil;
 import redis.type.RString;
 
 public record LPopCommand(
-	RString key
+	RString key,
+	int count
 ) implements Command {
 
 	@Override
@@ -19,7 +22,16 @@ public record LPopCommand(
 			return new CommandResponse(RNil.BULK);
 		}
 
-		return new CommandResponse(array.removeFirst());
+		final var popped = new ArrayList<RString>(count);
+		for (var index = 0; index < count && !array.isEmpty(); index++) {
+			popped.add((RString) array.removeFirst());
+		}
+
+		if (popped.size() == 1) {
+			return new CommandResponse(popped.getFirst());
+		}
+
+		return new CommandResponse(RArray.view(popped));
 	}
 
 	@Override
