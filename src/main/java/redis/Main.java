@@ -8,14 +8,15 @@ import java.nio.file.Paths;
 import java.util.stream.Collectors;
 
 import lombok.SneakyThrows;
-import redis.client.SocketClient;
 import redis.client.ReplicaClient;
+import redis.client.SocketClient;
 import redis.configuration.Configuration;
 import redis.rdb.RdbLoader;
 import redis.store.Storage;
 
 public class Main {
 
+	@SneakyThrows
 	public static void main(String[] args) throws IOException {
 		System.out.println("codecrafters build-your-own-redis");
 
@@ -83,6 +84,9 @@ public class Main {
 
 				final var thread = threadFactory.newThread(client);
 				thread.start();
+
+				// FIXME codecrafters tester is failing because of out of order...
+				Thread.sleep(100l);
 			}
 		}
 	}
