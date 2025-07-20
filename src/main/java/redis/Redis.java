@@ -1,11 +1,14 @@
 package redis;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -98,13 +101,21 @@ public class Redis {
 		});
 	}
 
-	public RValue awaitKey(RString key) {
+	public RValue awaitKey(RString key, Optional<Duration> timeout) {
 		final var condition = condititions.computeIfAbsent(key.content(), (__) -> lock.newCondition());
 
 		try {
 			lock.lock();
 
-			condition.await();
+			if (timeout.isPresent()) {
+				final var found = condition.await(timeout.get().toMillis(), TimeUnit.MILLISECONDS);
+
+				if (!found) {
+					return null;
+				}
+			} else {
+				condition.await();
+			}
 
 			return (RValue) storage.get(key);
 		} catch (InterruptedException exception) {

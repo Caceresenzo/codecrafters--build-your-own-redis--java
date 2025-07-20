@@ -9,6 +9,7 @@ import redis.command.Command;
 import redis.command.CommandResponse;
 import redis.type.RArray;
 import redis.type.RError;
+import redis.type.RNil;
 import redis.type.RString;
 import redis.type.RValue;
 
@@ -22,7 +23,11 @@ public record BLPopCommand(
 		var value = redis.getStorage().get(key);
 
 		if (value == null || !(value instanceof RArray<?> array) || array.isEmpty()) {
-			value = redis.awaitKey(key);
+			value = redis.awaitKey(key, timeout);
+
+			if (value == null) {
+				return new CommandResponse(RNil.BULK);
+			}
 
 			if (!(value instanceof RArray<?>)) {
 				throw RError.wrongtypeWrongKindOfValue().asException();
