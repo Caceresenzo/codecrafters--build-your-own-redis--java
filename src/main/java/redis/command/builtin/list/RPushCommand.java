@@ -20,8 +20,11 @@ public record RPushCommand(
 	@Override
 	public CommandResponse execute(Redis redis, Client client) {
 		final RArray<RString> array = redis.getStorage().compute(key, this);
+		final var size = array.size();
 
-		return new CommandResponse(RInteger.of(array.size()));
+		redis.notifyKey(key);
+
+		return new CommandResponse(RInteger.of(size));
 	}
 
 	@SuppressWarnings("unchecked")

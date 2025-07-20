@@ -4,7 +4,11 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +24,7 @@ import redis.type.RError;
 import redis.type.RErrorException;
 import redis.type.ROk;
 import redis.type.RString;
+import redis.type.RValue;
 
 @RequiredArgsConstructor
 public class Redis {
@@ -29,6 +34,9 @@ public class Redis {
 	private final @Getter List<SocketClient> replicas = Collections.synchronizedList(new ArrayList<>());
 	private @Getter AtomicLong replicationOffset = new AtomicLong();
 	private final CommandParser commandParser = new CommandParser();
+
+	private final ReentrantLock lock = new ReentrantLock(true);
+	private final Map<String, Condition> condititions = new ConcurrentHashMap<>();
 
 	@SuppressWarnings("unchecked")
 	public CommandResponse evaluate(Client client, Object value, long read) {
@@ -88,6 +96,38 @@ public class Redis {
 		replicas.forEach((client) -> {
 			client.command(payload);
 		});
+	}
+
+	public RValue awaitKey(RString key) {
+		final var condition = condititions.computeIfAbsent(key.content(), (__) -> lock.newCondition());
+
+		try {
+			lock.lock();
+
+			condition.await();
+
+			return (RValue) storage.get(key);
+		} catch (InterruptedException exception) {
+			Thread.currentThread().interrupt();
+		} finally {
+			lock.unlock();
+		}
+
+		return null;
+	}
+
+	public void notifyKey(RString key) {
+		final var condition = condititions.get(key.content());
+		if (condition == null) {
+			return;
+		}
+
+		lock.lock();
+		try {
+			condition.signal();
+		} finally {
+			lock.unlock();
+		}
 	}
 
 	public static void log(String message) {

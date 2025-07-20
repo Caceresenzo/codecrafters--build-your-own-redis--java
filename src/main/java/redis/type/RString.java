@@ -39,6 +39,10 @@ public record RString(
 		return Long.parseLong(content);
 	}
 
+	public double asDouble() {
+		return Double.parseDouble(content);
+	}
+
 	public Duration asDuration(TemporalUnit temporalUnit) {
 		return Duration.of(asLong(), temporalUnit);
 	}

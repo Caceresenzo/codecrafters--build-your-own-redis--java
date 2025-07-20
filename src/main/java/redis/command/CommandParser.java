@@ -20,6 +20,7 @@ import redis.command.builtin.core.KeysCommand;
 import redis.command.builtin.core.PingCommand;
 import redis.command.builtin.core.SetCommand;
 import redis.command.builtin.core.TypeCommand;
+import redis.command.builtin.list.BLPopCommand;
 import redis.command.builtin.list.LLenCommand;
 import redis.command.builtin.list.LPopCommand;
 import redis.command.builtin.list.LPushCommand;
@@ -37,7 +38,6 @@ import redis.command.builtin.transaction.MultiCommand;
 import redis.type.RArray;
 import redis.type.RError;
 import redis.type.RString;
-import redis.type.RValue;
 import redis.type.stream.identifier.Identifier;
 
 public class CommandParser {
@@ -72,6 +72,7 @@ public class CommandParser {
 		register("LRANGE", this::parseLRange);
 		register("LLEN", singleArgumentCommand(LLenCommand::new));
 		register("LPOP", this::parseLPop);
+		register("BLPOP", this::parseBLPop);
 	}
 
 	public void register(String name, BiFunction<String, List<RString>, Command> parser) {
@@ -139,6 +140,7 @@ public class CommandParser {
 		);
 	}
 
+	@SuppressWarnings("unchecked")
 	private XAddCommand parseXAdd(String name, List<RString> arguments) {
 		if (arguments.size() <= 2) {
 			throw wrongNumberOfArguments(name).asException();
@@ -147,8 +149,8 @@ public class CommandParser {
 		final var key = arguments.get(0);
 		final var id = Identifier.parse(arguments.get(1));
 
-		@SuppressWarnings({ "rawtypes", "unchecked" })
-		final var keyValues = (RArray<RValue>) (RArray) RArray.view(arguments.subList(2, arguments.size()));
+		@SuppressWarnings({ "rawtypes" })
+		final var keyValues = (RArray) RArray.view(arguments.subList(2, arguments.size()));
 
 		return new XAddCommand(
 			key,
@@ -281,6 +283,24 @@ public class CommandParser {
 			: 1;
 
 		return new LPopCommand(key, count);
+	}
+
+	private BLPopCommand parseBLPop(String name, List<RString> arguments) {
+		final var argumentsSize = arguments.size();
+		if (argumentsSize < 1 || argumentsSize > 2) {
+			throw wrongNumberOfArguments(name).asException();
+		}
+
+		final var key = arguments.get(0);
+		final var timeout = argumentsSize == 2
+			? Duration.ofMillis((long) (arguments.get(1).asDouble() * 1000))
+			: Duration.ZERO;
+
+		if (timeout.isPositive()) {
+			return new BLPopCommand(key, Optional.of(timeout));
+		}
+
+		return new BLPopCommand(key, Optional.empty());
 	}
 
 	private RError wrongNumberOfArguments(String name) {
