@@ -30,7 +30,7 @@ public class SocketClient implements Client, Runnable {
 
 	private final int id;
 	private final Socket socket;
-	private final Redis evaluator;
+	private final Redis redis;
 	private boolean connected;
 	private Consumer<SocketClient> disconnectListener;
 	private @Setter boolean replicate;
@@ -39,10 +39,10 @@ public class SocketClient implements Client, Runnable {
 	private @Setter Consumer<Object> replicateConsumer;
 	private @Getter @Setter List<ParsedCommand> queuedCommands;
 
-	public SocketClient(Socket socket, Redis evaluator) throws IOException {
+	public SocketClient(Socket socket, Redis redis) throws IOException {
 		this.id = ID_INCREMENT.incrementAndGet();
 		this.socket = socket;
-		this.evaluator = evaluator;
+		this.redis = redis;
 	}
 
 	@SneakyThrows
@@ -69,7 +69,7 @@ public class SocketClient implements Client, Runnable {
 				final var read = inputStream.count();
 
 				Redis.log("%d: received (%d): %s".formatted(id, read, request));
-				final var response = evaluator.evaluate(this, request, read);
+				final var response = redis.evaluate(this, request, read);
 
 				if (response == null) {
 					Redis.log("%d: no response".formatted(id));
@@ -144,6 +144,8 @@ public class SocketClient implements Client, Runnable {
 				disconnectListener.accept(this);
 			}
 		}
+
+		redis.getPubSub().unsubscribeAll(this);
 	}
 
 	public void command(CommandResponse value) {

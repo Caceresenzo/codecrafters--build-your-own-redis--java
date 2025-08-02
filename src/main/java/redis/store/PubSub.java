@@ -1,0 +1,46 @@
+package redis.store;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.Map;
+import java.util.Set;
+
+import lombok.Locked;
+import redis.client.SocketClient;
+
+public class PubSub {
+
+	private final Map<String, Set<SocketClient>> subscribers = new HashMap<>();
+	private final Map<SocketClient, Set<String>> subscribedKeys = new IdentityHashMap<>();
+
+	@Locked
+	public int subscribe(SocketClient client, String key) {
+		final var clients = subscribers.computeIfAbsent(key, (__) -> Collections.newSetFromMap(new IdentityHashMap<>()));
+		clients.add(client);
+
+		final var keys = subscribedKeys.computeIfAbsent(client, (__) -> new HashSet<>());
+		keys.add(key);
+
+		return keys.size();
+	}
+
+	@Locked
+	public void unsubscribeAll(SocketClient client) {
+		final var keys = subscribedKeys.get(client);
+		if (keys == null) {
+			return;
+		}
+
+		for (final var key : keys) {
+			final var clients = subscribers.get(key);
+			clients.remove(client);
+
+			if (clients.isEmpty()) {
+				subscribers.remove(key);
+			}
+		}
+	}
+
+}

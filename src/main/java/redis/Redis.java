@@ -21,6 +21,7 @@ import redis.command.CommandParser;
 import redis.command.CommandResponse;
 import redis.command.ParsedCommand;
 import redis.configuration.Configuration;
+import redis.store.PubSub;
 import redis.store.Storage;
 import redis.type.RArray;
 import redis.type.RError;
@@ -32,12 +33,12 @@ import redis.type.RValue;
 @RequiredArgsConstructor
 public class Redis {
 
-	private final @Getter Storage storage;
 	private final @Getter Configuration configuration;
+	private final @Getter Storage storage;
+	private final @Getter PubSub pubSub = new PubSub();
 	private final @Getter List<SocketClient> replicas = Collections.synchronizedList(new ArrayList<>());
 	private @Getter AtomicLong replicationOffset = new AtomicLong();
 	private final CommandParser commandParser = new CommandParser();
-
 	private final ReentrantLock lock = new ReentrantLock(true);
 	private final Map<String, Condition> condititions = new ConcurrentHashMap<>();
 

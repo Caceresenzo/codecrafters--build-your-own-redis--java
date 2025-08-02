@@ -56,7 +56,7 @@ public class Main {
 		final var isSlave = configuration.isSlave();
 		System.out.println("configuration: isSlave=%s".formatted(isSlave));
 
-		final var redis = new Redis(storage, configuration);
+		final var redis = new Redis(configuration, storage);
 
 		if (isSlave) {
 			connectToMaster(redis);
