@@ -31,4 +31,9 @@ public record SubscribeCommand(
 		return false;
 	}
 
+	@Override
+	public boolean isPubSub() {
+		return true;
+	}
+
 }

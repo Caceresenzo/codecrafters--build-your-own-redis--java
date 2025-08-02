@@ -15,4 +15,9 @@ public record PingCommand() implements Command {
 		return new CommandResponse(PONG);
 	}
 
+	@Override
+	public boolean isPubSub() {
+		return true;
+	}
+
 }

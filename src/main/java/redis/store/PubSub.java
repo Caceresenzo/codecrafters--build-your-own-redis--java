@@ -43,4 +43,10 @@ public class PubSub {
 		}
 	}
 
+	public boolean isSubscribed(SocketClient socketClient) {
+		final var keys = subscribedKeys.get(socketClient);
+
+		return keys != null && !keys.isEmpty();
+	}
+
 }

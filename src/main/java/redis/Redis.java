@@ -77,9 +77,15 @@ public class Redis {
 	private CommandResponse doExecute(Client client, ParsedCommand parsedCommand) {
 		final var command = parsedCommand.command();
 
-		if (client instanceof SocketClient socketClient && socketClient.isInTransaction() && command.isQueueable()) {
-			socketClient.queueCommand(parsedCommand);
-			return new CommandResponse(ROk.QUEUED);
+		if (client instanceof SocketClient socketClient) {
+			if (socketClient.isInTransaction() && command.isQueueable()) {
+				socketClient.queueCommand(parsedCommand);
+				return new CommandResponse(ROk.QUEUED);
+			}
+
+			if (pubSub.isSubscribed(socketClient) && !command.isPubSub()) {
+				throw RError.invalidCommandInSubscribedContextFormat(command.getName()).asException();
+			}
 		}
 
 		final var response = command.execute(this, client);
