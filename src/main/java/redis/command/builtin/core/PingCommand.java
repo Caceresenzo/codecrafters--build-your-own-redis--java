@@ -5,13 +5,14 @@ import redis.client.Client;
 import redis.client.SocketClient;
 import redis.command.Command;
 import redis.command.CommandResponse;
+import redis.store.PubSub;
 import redis.type.RArray;
 import redis.type.RString;
 
 public record PingCommand() implements Command {
 
 	private static final RString PONG = RString.simple("PONG");
-	private static final RArray<RString> PONG_SUBSCRIPTION = RArray.of(RString.bulk("pong"), RString.empty(false));
+	private static final RArray<RString> PONG_SUBSCRIPTION = RArray.of(PubSub.MessageKeys.PONG, RString.empty(false));
 
 	@Override
 	public CommandResponse execute(Redis redis, Client client) {

@@ -28,6 +28,7 @@ import redis.command.builtin.list.LRangeCommand;
 import redis.command.builtin.list.RPushCommand;
 import redis.command.builtin.pubsub.PublishCommand;
 import redis.command.builtin.pubsub.SubscribeCommand;
+import redis.command.builtin.pubsub.UnsubscribeCommand;
 import redis.command.builtin.replication.PSyncCommand;
 import redis.command.builtin.replication.ReplConfCommand;
 import redis.command.builtin.replication.WaitCommand;
@@ -78,6 +79,7 @@ public class CommandParser {
 
 		register("SUBSCRIBE", singleArgumentCommand(SubscribeCommand::new));
 		register("PUBLISH", doubleArgumentCommand(PublishCommand::new));
+		register("UNSUBSCRIBE", singleArgumentCommand(UnsubscribeCommand::new));
 	}
 
 	public void register(String name, BiFunction<String, List<RString>, Command> parser) {

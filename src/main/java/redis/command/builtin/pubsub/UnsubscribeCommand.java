@@ -10,16 +10,16 @@ import redis.type.RArray;
 import redis.type.RInteger;
 import redis.type.RString;
 
-public record SubscribeCommand(
+public record UnsubscribeCommand(
 	RString key
 ) implements Command {
 
 	@Override
 	public CommandResponse execute(Redis redis, Client client) {
-		final var count = redis.getPubSub().subscribe((SocketClient) client, key);
+		final var count = redis.getPubSub().unsubscribe((SocketClient) client, key);
 
 		return new CommandResponse(RArray.of(
-			PubSub.MessageKeys.SUBSCRIBE,
+			PubSub.MessageKeys.UNSUBSCRIBE,
 			RString.bulk(key),
 			RInteger.of(count)
 		));
