@@ -18,6 +18,18 @@ public class TrackedOutputStream extends OutputStream {
 	}
 
 	@Override
+	public void write(byte[] b) throws IOException {
+		delegate.write(b);
+		written += b.length;
+	}
+
+	@Override
+	public void write(byte[] b, int off, int len) throws IOException {
+		delegate.write(b, off, len);
+		written += len;
+	}
+
+	@Override
 	public void flush() throws IOException {
 		delegate.flush();
 	}

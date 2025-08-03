@@ -28,6 +28,24 @@ public class TrackedInputStream extends InputStream {
 	}
 
 	@Override
+	public int read(byte[] b) throws IOException {
+		return increment(delegate.read(b));
+	}
+
+	@Override
+	public int read(byte[] b, int off, int len) throws IOException {
+		return increment(delegate.read(b, off, len));
+	}
+
+	private int increment(final int value) {
+		if (value != -1) {
+			read += value;
+		}
+
+		return value;
+	}
+
+	@Override
 	public void close() throws IOException {
 		delegate.close();
 	}
