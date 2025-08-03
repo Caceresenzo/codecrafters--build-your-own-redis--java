@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import lombok.Getter;
+import lombok.Locked;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import redis.Redis;
@@ -21,6 +22,7 @@ import redis.command.ParsedCommand;
 import redis.serial.Deserializer;
 import redis.serial.Serializer;
 import redis.type.RBlob;
+import redis.type.RValue;
 import redis.util.TrackedInputStream;
 import redis.util.TrackedOutputStream;
 
@@ -39,10 +41,20 @@ public class SocketClient implements Client, Runnable {
 	private @Setter Consumer<Object> replicateConsumer;
 	private @Getter @Setter List<ParsedCommand> queuedCommands;
 
+	private final TrackedInputStream inputStream;
+	private final TrackedOutputStream outputStream;
+	private final Deserializer deserializer;
+	private final Serializer serializer;
+
 	public SocketClient(Socket socket, Redis redis) throws IOException {
 		this.id = ID_INCREMENT.incrementAndGet();
 		this.socket = socket;
 		this.redis = redis;
+
+		this.inputStream = new TrackedInputStream(socket.getInputStream());
+		this.outputStream = new TrackedOutputStream(socket.getOutputStream());
+		this.deserializer = new Deserializer(inputStream);
+		this.serializer = new Serializer(outputStream);
 	}
 
 	@SneakyThrows
@@ -52,12 +64,6 @@ public class SocketClient implements Client, Runnable {
 		Redis.log("%d: connected".formatted(id));
 
 		try (socket) {
-			final var inputStream = new TrackedInputStream(socket.getInputStream());
-			final var outputStream = new TrackedOutputStream(socket.getOutputStream());
-
-			final var deserializer = new Deserializer(inputStream);
-			final var serializer = new Serializer(outputStream);
-
 			while (!replicate) {
 				inputStream.begin();
 
@@ -76,7 +82,7 @@ public class SocketClient implements Client, Runnable {
 					continue;
 				} else {
 					Redis.log("%d: responding: %s".formatted(id, response));
-					serializer.write(response.value());
+					serialize(response.value());
 				}
 
 				outputStream.flush();
@@ -113,7 +119,7 @@ public class SocketClient implements Client, Runnable {
 				Redis.log("%d: send command: %s".formatted(id, command));
 
 				outputStream.begin();
-				serializer.write(command.value());
+				serialize(command.value());
 				serializer.flush();
 
 				if (command.value() instanceof RBlob) {
@@ -146,6 +152,12 @@ public class SocketClient implements Client, Runnable {
 		}
 
 		redis.getPubSub().unsubscribeAll(this);
+	}
+
+	@SneakyThrows
+	@Locked
+	private void serialize(RValue value) {
+		serializer.write(value);
 	}
 
 	public void command(CommandResponse value) {
@@ -196,6 +208,11 @@ public class SocketClient implements Client, Runnable {
 		}
 
 		return false;
+	}
+
+	public void notifySubscription(RValue value) {
+		Redis.log("%d: notifying subscription: %s".formatted(id, value));
+		serialize(value);
 	}
 
 	public static SocketClient cast(Client client) {

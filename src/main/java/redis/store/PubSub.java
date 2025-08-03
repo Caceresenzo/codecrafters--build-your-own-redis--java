@@ -9,10 +9,13 @@ import java.util.Set;
 
 import lombok.Locked;
 import redis.client.SocketClient;
+import redis.type.RArray;
 import redis.type.RString;
 import redis.type.RValue;
 
 public class PubSub {
+
+	private static final RString TYPE_MESSAGE = RString.bulk("message");
 
 	private final Map<String, Set<SocketClient>> subscribers = new HashMap<>();
 	private final Map<SocketClient, Set<String>> subscribedKeys = new IdentityHashMap<>();
@@ -56,6 +59,16 @@ public class PubSub {
 		final var clients = subscribers.get(key.content());
 		if (clients == null) {
 			return 0;
+		}
+
+		final var payload = RArray.of(
+			TYPE_MESSAGE,
+			RString.bulk(key),
+			value
+		);
+
+		for (final var client : clients) {
+			client.notifySubscription(payload);
 		}
 
 		return clients.size();
