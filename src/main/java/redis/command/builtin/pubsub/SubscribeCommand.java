@@ -13,7 +13,7 @@ public record SubscribeCommand(
 	RString key
 ) implements Command {
 
-	private static final RString SUBSCRIBE = RString.simple("subscribe");
+	private static final RString SUBSCRIBE = RString.bulk("subscribe");
 
 	@Override
 	public CommandResponse execute(Redis redis, Client client) {
