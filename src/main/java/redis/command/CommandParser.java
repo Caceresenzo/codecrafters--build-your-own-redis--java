@@ -26,6 +26,7 @@ import redis.command.builtin.list.LPopCommand;
 import redis.command.builtin.list.LPushCommand;
 import redis.command.builtin.list.LRangeCommand;
 import redis.command.builtin.list.RPushCommand;
+import redis.command.builtin.pubsub.PublishCommand;
 import redis.command.builtin.pubsub.SubscribeCommand;
 import redis.command.builtin.replication.PSyncCommand;
 import redis.command.builtin.replication.ReplConfCommand;
@@ -76,6 +77,7 @@ public class CommandParser {
 		register("BLPOP", this::parseBLPop);
 
 		register("SUBSCRIBE", singleArgumentCommand(SubscribeCommand::new));
+		register("PUBLISH", doubleArgumentCommand(PublishCommand::new));
 	}
 
 	public void register(String name, BiFunction<String, List<RString>, Command> parser) {

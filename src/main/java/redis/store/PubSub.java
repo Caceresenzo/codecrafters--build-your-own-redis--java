@@ -9,6 +9,8 @@ import java.util.Set;
 
 import lombok.Locked;
 import redis.client.SocketClient;
+import redis.type.RString;
+import redis.type.RValue;
 
 public class PubSub {
 
@@ -47,6 +49,16 @@ public class PubSub {
 		final var keys = subscribedKeys.get(socketClient);
 
 		return keys != null && !keys.isEmpty();
+	}
+
+	@Locked
+	public int publish(RString key, RValue value) {
+		final var clients = subscribers.get(key.content());
+		if (clients == null) {
+			return 0;
+		}
+
+		return clients.size();
 	}
 
 }
