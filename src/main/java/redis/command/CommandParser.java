@@ -33,6 +33,7 @@ import redis.command.builtin.replication.PSyncCommand;
 import redis.command.builtin.replication.ReplConfCommand;
 import redis.command.builtin.replication.WaitCommand;
 import redis.command.builtin.sortedset.ZAddCommand;
+import redis.command.builtin.sortedset.ZRangeCommand;
 import redis.command.builtin.sortedset.ZRankCommand;
 import redis.command.builtin.stream.XAddCommand;
 import redis.command.builtin.stream.XRangeCommand;
@@ -44,6 +45,7 @@ import redis.type.RArray;
 import redis.type.RError;
 import redis.type.RString;
 import redis.type.stream.identifier.Identifier;
+import redis.util.TriFunction;
 
 public class CommandParser {
 
@@ -74,7 +76,7 @@ public class CommandParser {
 
 		register("RPUSH", this::parseListPush);
 		register("LPUSH", this::parseListPush);
-		register("LRANGE", this::parseLRange);
+		register("LRANGE", rangeCommand(LRangeCommand::new));
 		register("LLEN", singleArgumentCommand(LLenCommand::new));
 		register("LPOP", this::parseLPop);
 		register("BLPOP", this::parseBLPop);
@@ -85,6 +87,7 @@ public class CommandParser {
 
 		register("ZADD", this::parseZAdd);
 		register("ZRANK", doubleArgumentCommand(ZRankCommand::new));
+		register("ZRANGE", rangeCommand(ZRangeCommand::new));
 	}
 
 	public void register(String name, BiFunction<String, List<RString>, Command> parser) {
@@ -139,6 +142,20 @@ public class CommandParser {
 			final var second = arguments.get(1);
 
 			return constructor.apply(first, second);
+		};
+	}
+
+	private BiFunction<String, List<RString>, Command> rangeCommand(TriFunction<RString, Integer, Integer, Command> constructor) {
+		return (name, arguments) -> {
+			if (arguments.size() != 3) {
+				throw wrongNumberOfArguments(name).asException();
+			}
+
+			final var key = arguments.get(0);
+			final var startIndex = arguments.get(1).asInteger().getAsInt();
+			final var endIndex = arguments.get(2).asInteger().getAsInt();
+
+			return constructor.apply(key, startIndex, endIndex);
 		};
 	}
 
@@ -269,18 +286,6 @@ public class CommandParser {
 		}
 
 		return new RPushCommand(key, values);
-	}
-
-	private LRangeCommand parseLRange(String name, List<RString> arguments) {
-		if (arguments.size() != 3) {
-			throw wrongNumberOfArguments(name).asException();
-		}
-
-		final var key = arguments.get(0);
-		final var startIndex = arguments.get(1).asInteger().getAsInt();
-		final var endIndex = arguments.get(2).asInteger().getAsInt();
-
-		return new LRangeCommand(key, startIndex, endIndex);
 	}
 
 	private LPopCommand parseLPop(String name, List<RString> arguments) {

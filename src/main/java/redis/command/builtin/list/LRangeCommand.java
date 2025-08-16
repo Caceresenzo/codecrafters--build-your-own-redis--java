@@ -6,6 +6,7 @@ import redis.command.Command;
 import redis.command.CommandResponse;
 import redis.type.RArray;
 import redis.type.RString;
+import redis.util.Range;
 
 public record LRangeCommand(
 	RString key,
@@ -21,22 +22,13 @@ public record LRangeCommand(
 		}
 
 		final var size = array.size();
-		final var start = scope(startIndex, size);
-		final var end = scope(endIndex, size);
+		final var range = new Range(size, startIndex, endIndex);
 
-		if (start > end) {
+		if (range.isEmpty()) {
 			return new CommandResponse(RArray.empty());
 		}
 
-		return new CommandResponse(RArray.view(array.subList(start, end + 1)));
-	}
-
-	private Integer scope(int index, int size) {
-		if (index < 0) {
-			index += size;
-		}
-
-		return Math.clamp(index, 0, size - 1);
+		return new CommandResponse(range.subList(array));
 	}
 
 }

@@ -6,6 +6,9 @@ import java.util.List;
 import java.util.Map;
 
 import lombok.Locked;
+import redis.type.RArray;
+import redis.type.RString;
+import redis.util.Range;
 
 public class SortedSet {
 
@@ -43,6 +46,23 @@ public class SortedSet {
 		}
 
 		return entry.index;
+	}
+
+	@Locked
+	public RArray<RString> range(int startIndex, int endIndex) {
+		final var size = sortedValues.size();
+		final var range = new Range(size, startIndex, endIndex);
+
+		if (range.isEmpty()) {
+			return RArray.empty();
+		}
+
+		final var rValues = range.subList(sortedValues)
+			.stream()
+			.map(RString::detect)
+			.toList();
+
+		return RArray.view(rValues);
 	}
 
 	private void computeIndexes() {

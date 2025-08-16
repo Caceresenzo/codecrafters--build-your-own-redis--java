@@ -40,15 +40,6 @@ public class Storage {
 		return sortedSet.add(value.content(), score);
 	}
 
-	public Integer rankInSet(String key, RString value) {
-		final var sortedSet = sortedSets.get(key);
-		if (sortedSet == null) {
-			return null;
-		}
-
-		return sortedSet.rank(value.content());
-	}
-
 	@SuppressWarnings("unchecked")
 	public <T, R> R compute(RString key, Function<T, R> remappingFunction) {
 		return ((Cell<R>) map.compute(
@@ -95,6 +86,10 @@ public class Storage {
 				.map(RString::simple)
 				.toList()
 		);
+	}
+
+	public SortedSet getSortedSet(String key) {
+		return sortedSets.get(key);
 	}
 
 }
