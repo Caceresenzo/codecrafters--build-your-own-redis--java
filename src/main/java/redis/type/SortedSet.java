@@ -1,4 +1,4 @@
-package redis.store;
+package redis.type;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -6,8 +6,6 @@ import java.util.List;
 import java.util.Map;
 
 import lombok.Locked;
-import redis.type.RArray;
-import redis.type.RString;
 import redis.util.Range;
 
 public class SortedSet {

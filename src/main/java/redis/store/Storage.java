@@ -7,6 +7,7 @@ import java.util.function.Function;
 
 import redis.type.RArray;
 import redis.type.RString;
+import redis.type.SortedSet;
 
 public class Storage {
 
