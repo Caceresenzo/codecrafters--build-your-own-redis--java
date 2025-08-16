@@ -32,6 +32,7 @@ import redis.command.builtin.pubsub.UnsubscribeCommand;
 import redis.command.builtin.replication.PSyncCommand;
 import redis.command.builtin.replication.ReplConfCommand;
 import redis.command.builtin.replication.WaitCommand;
+import redis.command.builtin.sortedset.ZAddCommand;
 import redis.command.builtin.stream.XAddCommand;
 import redis.command.builtin.stream.XRangeCommand;
 import redis.command.builtin.stream.XReadCommand;
@@ -80,6 +81,8 @@ public class CommandParser {
 		register("SUBSCRIBE", singleArgumentCommand(SubscribeCommand::new));
 		register("PUBLISH", doubleArgumentCommand(PublishCommand::new));
 		register("UNSUBSCRIBE", singleArgumentCommand(UnsubscribeCommand::new));
+
+		register("ZADD", this::parseZAdd);
 	}
 
 	public void register(String name, BiFunction<String, List<RString>, Command> parser) {
@@ -308,6 +311,19 @@ public class CommandParser {
 		}
 
 		return new BLPopCommand(key, Optional.empty());
+	}
+
+	private ZAddCommand parseZAdd(String name, List<RString> arguments) {
+		final var argumentsSize = arguments.size();
+		if (argumentsSize != 3) {
+			throw wrongNumberOfArguments(name).asException();
+		}
+
+		final var key = arguments.get(0);
+		final var score = arguments.get(1).asDouble();
+		final var value = arguments.get(2);
+
+		return new ZAddCommand(key, score, value);
 	}
 
 	private RError wrongNumberOfArguments(String name) {

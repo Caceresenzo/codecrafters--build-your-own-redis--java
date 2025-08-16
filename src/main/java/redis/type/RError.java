@@ -10,6 +10,7 @@ public record RError(
 	private static final RError XADD_ID_GREATER_0_0 = new RError("ERR The ID specified in XADD must be greater than 0-0");
 	private static final RError WRONGTYPE_WRONG_KIND_OF_VALUE = new RError("WRONGTYPE Operation against a key holding the wrong kind of value");
 	private static final String ERR_INVALID_COMMAND_IN_SUBSCRIBED_CONTEXT_FORMAT = "ERR Can't execute '%s': only (P|S)SUBSCRIBE / (P|S)UNSUBSCRIBE / PING / QUIT / RESET are allowed in this context";
+	private static final RError VALUE_NOT_A_FLOAT = new RError("ERR value is not a valid float");
 
 	public RError(String message) {
 		this(RString.simple(message));
@@ -41,6 +42,10 @@ public record RError(
 
 	public static RError invalidCommandInSubscribedContextFormat(String commandName) {
 		return new RError(ERR_INVALID_COMMAND_IN_SUBSCRIBED_CONTEXT_FORMAT.formatted(commandName.toLowerCase()));
+	}
+
+	public static RError valueNotAFloat() {
+		return VALUE_NOT_A_FLOAT;
 	}
 
 }

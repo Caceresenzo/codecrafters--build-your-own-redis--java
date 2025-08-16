@@ -40,7 +40,11 @@ public record RString(
 	}
 
 	public double asDouble() {
-		return Double.parseDouble(content);
+		try {
+			return Double.parseDouble(content);
+		} catch (NumberFormatException exception) {
+			throw RError.valueNotAFloat().asException();
+		}
 	}
 
 	public Duration asDuration(TemporalUnit temporalUnit) {
