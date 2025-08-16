@@ -11,6 +11,7 @@ import redis.type.RString;
 public class Storage {
 
 	private final Map<String, Cell<Object>> map = new ConcurrentHashMap<>();
+	private final Map<String, SortedSet> sortedSets = new ConcurrentHashMap<>();
 
 	public void clear() {
 		map.clear();
@@ -31,6 +32,12 @@ public class Storage {
 
 	public void put(String key, Cell<Object> cell) {
 		map.put(key, cell);
+	}
+
+	public boolean addToSet(String key, RString value, double score) {
+		final var sortedSet = sortedSets.computeIfAbsent(key, (__) -> new SortedSet());
+
+		return sortedSet.add(value.content(), score);
 	}
 
 	@SuppressWarnings("unchecked")

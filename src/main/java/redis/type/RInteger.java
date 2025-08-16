@@ -15,4 +15,8 @@ public record RInteger(
 		return new RInteger(value);
 	}
 
+	public static RInteger of(boolean value) {
+		return value ? ONE : ZERO;
+	}
+
 }

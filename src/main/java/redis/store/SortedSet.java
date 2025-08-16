@@ -1,0 +1,71 @@
+package redis.store;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import lombok.Locked;
+
+public class SortedSet {
+
+	private final Map<String, EntryValue> entries = new HashMap<>();
+	private final List<String> sortedValues = new ArrayList<>();
+
+	@Locked
+	public boolean add(String value, double score) {
+		var entry = entries.get(value);
+		if (entry != null) {
+			if (entry.score == score) {
+				return false;
+			}
+
+			entry.score = score;
+
+			computeIndexes();
+			return false;
+		} else {
+			sortedValues.add(value);
+
+			entry = new EntryValue(score);
+			entries.put(value, entry);
+
+			computeIndexes();
+			return true;
+		}
+	}
+
+	private void computeIndexes() {
+		sortedValues.sort((leftKey, rightKey) -> {
+			final var leftScore = entries.get(leftKey).score;
+			final var rightScore = entries.get(rightKey).score;
+
+			final var compare = Double.compare(leftScore, rightScore);
+			if (compare != 0) {
+				return compare;
+			}
+
+			return leftKey.compareTo(rightKey);
+		});
+
+		/* TODO could only update index after the changed entry */
+		for (var index = 0; index < sortedValues.size(); index++) {
+			entries.get(sortedValues.get(index)).index = index;
+		}
+
+		System.out.println(entries);
+		System.out.println(sortedValues);
+	}
+
+	class EntryValue {
+
+		double score;
+		int index;
+
+		private EntryValue(double score) {
+			this.score = score;
+		}
+
+	}
+
+}

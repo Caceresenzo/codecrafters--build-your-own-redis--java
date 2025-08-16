@@ -15,9 +15,13 @@ public record ZAddCommand(
 
 	@Override
 	public CommandResponse execute(Redis redis, Client client) {
-		return new CommandResponse(
-			RInteger.ONE
+		final var added = redis.getStorage().addToSet(
+			key.content(),
+			value,
+			score
 		);
+
+		return new CommandResponse(RInteger.of(added));
 	}
 
 }
