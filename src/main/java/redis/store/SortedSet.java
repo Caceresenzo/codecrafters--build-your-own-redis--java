@@ -35,6 +35,16 @@ public class SortedSet {
 		}
 	}
 
+	@Locked
+	public Integer rank(String value) {
+		final var entry = entries.get(value);
+		if (entry == null) {
+			return null;
+		}
+
+		return entry.index;
+	}
+
 	private void computeIndexes() {
 		sortedValues.sort((leftKey, rightKey) -> {
 			final var leftScore = entries.get(leftKey).score;

@@ -33,6 +33,7 @@ import redis.command.builtin.replication.PSyncCommand;
 import redis.command.builtin.replication.ReplConfCommand;
 import redis.command.builtin.replication.WaitCommand;
 import redis.command.builtin.sortedset.ZAddCommand;
+import redis.command.builtin.sortedset.ZRankCommand;
 import redis.command.builtin.stream.XAddCommand;
 import redis.command.builtin.stream.XRangeCommand;
 import redis.command.builtin.stream.XReadCommand;
@@ -83,6 +84,7 @@ public class CommandParser {
 		register("UNSUBSCRIBE", singleArgumentCommand(UnsubscribeCommand::new));
 
 		register("ZADD", this::parseZAdd);
+		register("ZRANK", doubleArgumentCommand(ZRankCommand::new));
 	}
 
 	public void register(String name, BiFunction<String, List<RString>, Command> parser) {
