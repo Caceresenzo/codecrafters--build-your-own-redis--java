@@ -65,6 +65,11 @@ public class SortedSet {
 		return RArray.view(rValues);
 	}
 
+	@Locked
+	public int cardinality() {
+		return entries.size();
+	}
+
 	private void computeIndexes() {
 		sortedValues.sort((leftKey, rightKey) -> {
 			final var leftScore = entries.get(leftKey).score;
