@@ -4,11 +4,10 @@ import redis.Redis;
 import redis.client.Client;
 import redis.command.Command;
 import redis.command.CommandResponse;
-import redis.type.RInteger;
 import redis.type.RNil;
 import redis.type.RString;
 
-public record ZRankCommand(
+public record ZScoreCommand(
 	RString key,
 	RString value
 ) implements Command {
@@ -20,12 +19,14 @@ public record ZRankCommand(
 			return new CommandResponse(RNil.BULK);
 		}
 
-		final var index = sortedSet.getRank(value.content());
-		if (index == null) {
+		final var score = sortedSet.getScore(value.content());
+		if (score == null) {
 			return new CommandResponse(RNil.BULK);
 		}
 
-		return new CommandResponse(RInteger.of(index));
+		return new CommandResponse(
+			RString.bulk(String.valueOf(score))
+		);
 	}
 
 }

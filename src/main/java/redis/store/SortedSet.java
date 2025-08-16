@@ -39,13 +39,22 @@ public class SortedSet {
 	}
 
 	@Locked
-	public Integer rank(String value) {
+	public Integer getRank(String value) {
 		final var entry = entries.get(value);
 		if (entry == null) {
 			return null;
 		}
 
 		return entry.index;
+	}
+
+	public Double getScore(String value) {
+		final var entry = entries.get(value);
+		if (entry == null) {
+			return null;
+		}
+
+		return entry.score;
 	}
 
 	@Locked
