@@ -36,6 +36,7 @@ import redis.command.builtin.sortedset.ZAddCommand;
 import redis.command.builtin.sortedset.ZCardCommand;
 import redis.command.builtin.sortedset.ZRangeCommand;
 import redis.command.builtin.sortedset.ZRankCommand;
+import redis.command.builtin.sortedset.ZRemCommand;
 import redis.command.builtin.sortedset.ZScoreCommand;
 import redis.command.builtin.stream.XAddCommand;
 import redis.command.builtin.stream.XRangeCommand;
@@ -92,6 +93,7 @@ public class CommandParser {
 		register("ZRANGE", rangeCommand(ZRangeCommand::new));
 		register("ZCARD", singleArgumentCommand(ZCardCommand::new));
 		register("ZSCORE", doubleArgumentCommand(ZScoreCommand::new));
+		register("ZREM", doubleArgumentCommand(ZRemCommand::new));
 	}
 
 	public void register(String name, BiFunction<String, List<RString>, Command> parser) {

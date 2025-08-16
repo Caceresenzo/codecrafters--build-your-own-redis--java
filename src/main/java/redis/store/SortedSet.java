@@ -39,6 +39,24 @@ public class SortedSet {
 	}
 
 	@Locked
+	public boolean remove(String value) {
+		final var entry = entries.remove(value);
+		if (entry == null) {
+			return false;
+		}
+
+		sortedValues.remove(entry.index);
+
+		for (final var mapEntry : entries.values()) {
+			if (mapEntry.index > entry.index) {
+				mapEntry.index--;
+			}
+		}
+
+		return true;
+	}
+
+	@Locked
 	public Integer getRank(String value) {
 		final var entry = entries.get(value);
 		if (entry == null) {
@@ -48,6 +66,7 @@ public class SortedSet {
 		return entry.index;
 	}
 
+	@Locked
 	public Double getScore(String value) {
 		final var entry = entries.get(value);
 		if (entry == null) {
