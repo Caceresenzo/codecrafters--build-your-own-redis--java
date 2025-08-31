@@ -33,7 +33,6 @@ public record ZScoreCommand(
 		}
 
 		final var stringValue = NO_SCIENTIFIC.format(score);
-
 		return new CommandResponse(
 			RString.bulk(stringValue)
 		);

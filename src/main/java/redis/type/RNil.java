@@ -3,11 +3,8 @@ package redis.type;
 public enum RNil implements RValue {
 
 	SIMPLE,
-	BULK;
-
-	public boolean bulk() {
-		return this == BULK;
-	}
+	BULK,
+	ARRAY;
 
 	@Override
 	public String toString() {

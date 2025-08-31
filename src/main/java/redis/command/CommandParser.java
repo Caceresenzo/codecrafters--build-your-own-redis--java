@@ -21,6 +21,7 @@ import redis.command.builtin.core.PingCommand;
 import redis.command.builtin.core.SetCommand;
 import redis.command.builtin.core.TypeCommand;
 import redis.command.builtin.geospatial.GeoAddCommand;
+import redis.command.builtin.geospatial.GeoPosCommand;
 import redis.command.builtin.list.BLPopCommand;
 import redis.command.builtin.list.LLenCommand;
 import redis.command.builtin.list.LPopCommand;
@@ -98,6 +99,7 @@ public class CommandParser {
 		register("ZREM", doubleArgumentCommand(ZRemCommand::new));
 
 		register("GEOADD", this::parseGeoAdd);
+		register("GEOPOS", this::parseGeoPos);
 	}
 
 	public void register(String name, BiFunction<String, List<RString>, Command> parser) {
@@ -355,6 +357,18 @@ public class CommandParser {
 		final var member = arguments.get(3);
 
 		return new GeoAddCommand(key, new GeoCoordinate(longitude, latitude), member);
+	}
+
+	private GeoPosCommand parseGeoPos(String name, List<RString> arguments) {
+		final var argumentsSize = arguments.size();
+		if (argumentsSize < 2) {
+			throw wrongNumberOfArguments(name).asException();
+		}
+
+		final var key = arguments.get(0);
+		final var members = arguments.subList(1, argumentsSize);
+
+		return new GeoPosCommand(key, members);
 	}
 
 	private RError wrongNumberOfArguments(String name) {

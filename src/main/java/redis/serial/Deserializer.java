@@ -82,7 +82,7 @@ public class Deserializer {
 		final var length = parseLength();
 
 		if (length == -1) {
-			return RNil.SIMPLE;
+			return RNil.ARRAY;
 		}
 
 		if (length == 0) {
