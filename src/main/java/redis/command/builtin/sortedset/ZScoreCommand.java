@@ -1,24 +1,17 @@
 package redis.command.builtin.sortedset;
 
-import java.text.DecimalFormat;
-
 import redis.Redis;
 import redis.client.Client;
 import redis.command.Command;
 import redis.command.CommandResponse;
 import redis.type.RNil;
 import redis.type.RString;
+import redis.util.NumberUtils;
 
 public record ZScoreCommand(
 	RString key,
 	RString value
 ) implements Command {
-
-	private static final DecimalFormat NO_SCIENTIFIC = new DecimalFormat("0");
-
-	static {
-		NO_SCIENTIFIC.setMaximumFractionDigits(340);
-	}
 
 	@Override
 	public CommandResponse execute(Redis redis, Client client) {
@@ -32,9 +25,8 @@ public record ZScoreCommand(
 			return new CommandResponse(RNil.BULK);
 		}
 
-		final var stringValue = NO_SCIENTIFIC.format(score);
 		return new CommandResponse(
-			RString.bulk(stringValue)
+			RString.bulk(NumberUtils.formatDoubleNoScientific(score))
 		);
 	}
 
