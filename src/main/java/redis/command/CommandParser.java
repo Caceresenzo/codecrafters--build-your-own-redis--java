@@ -45,6 +45,7 @@ import redis.command.builtin.stream.XReadCommand;
 import redis.command.builtin.transaction.DiscardCommand;
 import redis.command.builtin.transaction.ExecCommand;
 import redis.command.builtin.transaction.MultiCommand;
+import redis.type.GeoCoordinate;
 import redis.type.RArray;
 import redis.type.RError;
 import redis.type.RString;
@@ -353,12 +354,7 @@ public class CommandParser {
 		final var latitude = arguments.get(2).asDouble();
 		final var member = arguments.get(3);
 
-		final var latitudeRange = 85.05112878d;
-		if (longitude < -180 || longitude > 180 || latitude < -latitudeRange || latitude > latitudeRange) {
-			throw new RError("ERR invalid longitude,latitude pair %.6f,%.6f".formatted(longitude, latitude)).asException();
-		}
-
-		return new GeoAddCommand(key, longitude, latitude, member);
+		return new GeoAddCommand(key, new GeoCoordinate(longitude, latitude), member);
 	}
 
 	private RError wrongNumberOfArguments(String name) {
