@@ -4,7 +4,7 @@ import redis.Redis;
 import redis.client.Client;
 import redis.command.Command;
 import redis.command.CommandResponse;
-import redis.command.builtin.sortedset.ZAddCommand;
+import redis.type.RInteger;
 import redis.type.RString;
 
 public record GeoAddCommand(
@@ -16,9 +16,15 @@ public record GeoAddCommand(
 
 	@Override
 	public CommandResponse execute(Redis redis, Client client) {
-		final var delegate = new ZAddCommand(key, 0, key);
+		final var score = 0;
 
-		return delegate.execute(redis, client);
+		redis.getStorage().addToSet(
+			key.content(),
+			member,
+			score
+		);
+
+		return new CommandResponse(RInteger.ONE);
 	}
 
 }
