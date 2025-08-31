@@ -20,6 +20,7 @@ import redis.command.builtin.core.KeysCommand;
 import redis.command.builtin.core.PingCommand;
 import redis.command.builtin.core.SetCommand;
 import redis.command.builtin.core.TypeCommand;
+import redis.command.builtin.geospatial.GeoAddCommand;
 import redis.command.builtin.list.BLPopCommand;
 import redis.command.builtin.list.LLenCommand;
 import redis.command.builtin.list.LPopCommand;
@@ -94,6 +95,8 @@ public class CommandParser {
 		register("ZCARD", singleArgumentCommand(ZCardCommand::new));
 		register("ZSCORE", doubleArgumentCommand(ZScoreCommand::new));
 		register("ZREM", doubleArgumentCommand(ZRemCommand::new));
+
+		register("GEOADD", this::parseGeoAdd);
 	}
 
 	public void register(String name, BiFunction<String, List<RString>, Command> parser) {
@@ -337,6 +340,20 @@ public class CommandParser {
 		final var value = arguments.get(2);
 
 		return new ZAddCommand(key, score, value);
+	}
+
+	private GeoAddCommand parseGeoAdd(String name, List<RString> arguments) {
+		final var argumentsSize = arguments.size();
+		if (argumentsSize != 4) {
+			throw wrongNumberOfArguments(name).asException();
+		}
+
+		final var key = arguments.get(0);
+		final var longitude = arguments.get(1).asDouble();
+		final var latitude = arguments.get(2).asDouble();
+		final var member = arguments.get(3);
+
+		return new GeoAddCommand(key, longitude, latitude, member);
 	}
 
 	private RError wrongNumberOfArguments(String name) {
