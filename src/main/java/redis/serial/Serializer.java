@@ -42,12 +42,14 @@ public class Serializer {
 			}
 			case RError error -> writeError(error);
 			case RInteger integer -> writeSimpleInteger(integer.value());
-			case RNil nil -> {
-				if (nil.bulk()) {
-					writeNullBulk();
-				} else {
-					writeNil();
-				}
+			case RNil.SIMPLE -> {
+				writeNil();
+			}
+			case RNil.BULK -> {
+				writeNullBulk();
+			}
+			case RNil.ARRAY -> {
+				writeNullArray();
 			}
 			case ROk ok -> {
 				switch (ok) {
@@ -93,6 +95,12 @@ public class Serializer {
 
 	private void writeNullBulk() throws IOException {
 		outputStream.write(Protocol.BULK_STRING);
+		outputStream.write(MINUS_ONE_BYTES);
+		outputStream.write(CRLF_BYTES);
+	}
+	
+	private void writeNullArray() throws IOException {
+		outputStream.write(Protocol.ARRAY);
 		outputStream.write(MINUS_ONE_BYTES);
 		outputStream.write(CRLF_BYTES);
 	}
