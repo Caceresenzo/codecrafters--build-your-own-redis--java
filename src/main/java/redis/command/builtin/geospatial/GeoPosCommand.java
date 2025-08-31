@@ -6,6 +6,7 @@ import redis.Redis;
 import redis.client.Client;
 import redis.command.Command;
 import redis.command.CommandResponse;
+import redis.type.GeoCoordinate;
 import redis.type.RArray;
 import redis.type.RNil;
 import redis.type.RString;
@@ -34,7 +35,8 @@ public record GeoPosCommand(
 					return RNil.ARRAY;
 				}
 
-				return RArray.of(RString.bulk("0"), RString.bulk("0"));
+				final var coordinates = GeoCoordinate.decode(score.longValue());
+				return coordinates.toArray();
 			})
 			.toList();
 
