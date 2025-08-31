@@ -353,6 +353,11 @@ public class CommandParser {
 		final var latitude = arguments.get(2).asDouble();
 		final var member = arguments.get(3);
 
+		final var latitudeRange = 85.05112878d;
+		if (longitude < -180 || longitude > 180 || latitude < -latitudeRange || latitude > latitudeRange) {
+			throw new RError("ERR invalid longitude,latitude pair %.6f,%.6f".formatted(longitude, latitude)).asException();
+		}
+
 		return new GeoAddCommand(key, longitude, latitude, member);
 	}
 
