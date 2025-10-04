@@ -13,6 +13,8 @@ public record GeoCoordinate(
 	private static final double LATITUDE_RANGE = MAX_LATITUDE - MIN_LATITUDE;
 	private static final double LONGITUDE_RANGE = MAX_LONGITUDE - MIN_LONGITUDE;
 
+	public static final double EARTH_RADIUS_IN_METERS = 6372797.560856;
+
 	public GeoCoordinate {
 		if (longitude < MIN_LONGITUDE || longitude > MAX_LONGITUDE || latitude < MIN_LATITUDE || latitude > MAX_LATITUDE) {
 			throw new RError("ERR invalid longitude,latitude pair %.6f,%.6f".formatted(longitude, latitude)).asException();
@@ -30,6 +32,28 @@ public record GeoCoordinate(
 		int lonInt = (int) normalizedLongitude;
 
 		return interleave(latInt, lonInt);
+	}
+
+	public double distanceTo(GeoCoordinate other) {
+		double lon1r = Math.toRadians(this.longitude());
+		double lon2r = Math.toRadians(other.longitude());
+		double v = Math.sin((lon2r - lon1r) / 2);
+
+		/* if v == 0 we can avoid doing expensive math when lons are practically the same */
+		if (v == 0.0) {
+			return EARTH_RADIUS_IN_METERS * Math.abs(Math.toRadians(this.latitude()) - Math.toRadians(other.latitude()));
+		}
+
+		double lat1r = Math.toRadians(this.latitude());
+		double lat2r = Math.toRadians(other.latitude());
+
+		double u = Math.sin((lat2r - lat1r) / 2);
+		double a = u * u + Math.cos(lat1r) * Math.cos(lat2r) * v * v;
+
+		double distance = 2.0 * EARTH_RADIUS_IN_METERS * Math.asin(Math.sqrt(a));
+
+		final var precision = 1e4;
+		return Math.round(distance * precision) / precision;
 	}
 
 	public RArray<RString> toArray() {

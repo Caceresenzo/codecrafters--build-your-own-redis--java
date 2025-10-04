@@ -23,6 +23,7 @@ import redis.command.builtin.core.TypeCommand;
 import redis.command.builtin.geospatial.GeoAddCommand;
 import redis.command.builtin.geospatial.GeoDistCommand;
 import redis.command.builtin.geospatial.GeoPosCommand;
+import redis.command.builtin.geospatial.GeoSearchCommand;
 import redis.command.builtin.list.BLPopCommand;
 import redis.command.builtin.list.LLenCommand;
 import redis.command.builtin.list.LPopCommand;
@@ -102,6 +103,7 @@ public class CommandParser {
 		register("GEOADD", this::parseGeoAdd);
 		register("GEOPOS", this::parseGeoPos);
 		register("GEODIST", tripleArgumentCommand(GeoDistCommand::new));
+		register("GEOSEARCH", this::parseGeoSearch);
 	}
 
 	public void register(String name, BiFunction<String, List<RString>, Command> parser) {
@@ -385,6 +387,41 @@ public class CommandParser {
 		final var members = arguments.subList(1, argumentsSize);
 
 		return new GeoPosCommand(key, members);
+	}
+
+	private GeoSearchCommand parseGeoSearch(String name, List<RString> arguments) {
+		final var argumentsSize = arguments.size();
+		if (argumentsSize < 7) {
+			throw wrongNumberOfArguments(name).asException();
+		}
+
+		final var key = arguments.get(0);
+
+		final var centerMode = arguments.get(1);
+		if (!"FROMLONLAT".equals(centerMode.content())) {
+			throw new RError("ERR only FROMLONLAT center mode is supported for GEOSEARCH command").asException();
+		}
+
+		final var longitude = arguments.get(2).asDouble();
+		final var latitude = arguments.get(3).asDouble();
+
+		final var regionMode = arguments.get(4);
+		if (!"BYRADIUS".equals(regionMode.content())) {
+			throw new RError("ERR only BYRADIUS region mode is supported for GEOSEARCH command").asException();
+		}
+
+		final var radius = arguments.get(5).asDouble();
+
+		final var radiusUnit = arguments.get(6);
+		if (!"m".equals(radiusUnit.content())) {
+			throw new RError("ERR only meter (m) is supported for GEOSEARCH command").asException();
+		}
+
+		return new GeoSearchCommand(
+			key,
+			new GeoCoordinate(longitude, latitude),
+			radius
+		);
 	}
 
 	private RError wrongNumberOfArguments(String name) {

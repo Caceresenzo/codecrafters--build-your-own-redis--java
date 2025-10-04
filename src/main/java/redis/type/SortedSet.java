@@ -2,10 +2,13 @@ package redis.type;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 import lombok.Locked;
+import lombok.RequiredArgsConstructor;
 import redis.util.Range;
 
 public class SortedSet {
@@ -15,6 +18,8 @@ public class SortedSet {
 
 	@Locked
 	public boolean add(String value, double score) {
+		entries.entrySet().iterator();
+
 		var entry = entries.get(value);
 		if (entry != null) {
 			if (entry.score == score) {
@@ -96,6 +101,10 @@ public class SortedSet {
 		return entries.size();
 	}
 
+	public Iterator<Map.Entry<String, Double>> iterator() {
+		return new IteratorImpl(entries.entrySet().iterator());
+	}
+
 	private void computeIndexes() {
 		sortedValues.sort((leftKey, rightKey) -> {
 			final var leftScore = entries.get(leftKey).score;
@@ -125,6 +134,32 @@ public class SortedSet {
 
 		private EntryValue(double score) {
 			this.score = score;
+		}
+
+	}
+
+	@RequiredArgsConstructor
+	class IteratorImpl implements Iterator<Map.Entry<String, Double>> {
+
+		private final Iterator<Map.Entry<String, EntryValue>> entryIterator;
+
+		@Override
+		public boolean hasNext() {
+			return entryIterator.hasNext();
+		}
+
+		@Override
+		public Map.Entry<String, Double> next() {
+			if (!hasNext()) {
+				throw new NoSuchElementException();
+			}
+
+			final var entry = entryIterator.next();
+
+			return Map.entry(
+				entry.getKey(),
+				entry.getValue().score
+			);
 		}
 
 	}
