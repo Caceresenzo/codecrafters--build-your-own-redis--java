@@ -21,6 +21,7 @@ import redis.command.builtin.core.PingCommand;
 import redis.command.builtin.core.SetCommand;
 import redis.command.builtin.core.TypeCommand;
 import redis.command.builtin.geospatial.GeoAddCommand;
+import redis.command.builtin.geospatial.GeoDistCommand;
 import redis.command.builtin.geospatial.GeoPosCommand;
 import redis.command.builtin.list.BLPopCommand;
 import redis.command.builtin.list.LLenCommand;
@@ -100,6 +101,7 @@ public class CommandParser {
 
 		register("GEOADD", this::parseGeoAdd);
 		register("GEOPOS", this::parseGeoPos);
+		register("GEODIST", tripleArgumentCommand(GeoDistCommand::new));
 	}
 
 	public void register(String name, BiFunction<String, List<RString>, Command> parser) {
@@ -154,6 +156,20 @@ public class CommandParser {
 			final var second = arguments.get(1);
 
 			return constructor.apply(first, second);
+		};
+	}
+
+	private BiFunction<String, List<RString>, Command> tripleArgumentCommand(TriFunction<RString, RString, RString, Command> constructor) {
+		return (name, arguments) -> {
+			if (arguments.size() != 3) {
+				throw wrongNumberOfArguments(name).asException();
+			}
+
+			final var first = arguments.getFirst();
+			final var second = arguments.get(1);
+			final var third = arguments.get(2);
+
+			return constructor.apply(first, second, third);
 		};
 	}
 
