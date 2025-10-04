@@ -26,7 +26,7 @@ public record BLPopCommand(
 			value = redis.awaitKey(key, timeout);
 
 			if (value == null) {
-				return new CommandResponse(RNil.BULK);
+				return new CommandResponse(RNil.ARRAY);
 			}
 
 			if (!(value instanceof RArray<?>)) {
