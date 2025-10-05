@@ -30,7 +30,7 @@ public record XReadCommand(
 			final var entries = stream.read(query.identifier(), timeout.get());
 
 			if (entries == null) {
-				return new CommandResponse(RNil.BULK);
+				return new CommandResponse(RNil.ARRAY);
 			}
 
 			return new CommandResponse(RArray.of(RArray.of(
