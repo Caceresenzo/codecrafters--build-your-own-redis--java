@@ -81,7 +81,7 @@ public class SocketClient implements Client, Runnable {
 					Redis.log("%d: no response".formatted(id));
 					continue;
 				} else {
-					Redis.log("%d: responding: %s".formatted(id, response));
+					Redis.log("%d: responding: %s (replicate=%s)".formatted(id, response, replicate));
 					serialize(response.value());
 				}
 
