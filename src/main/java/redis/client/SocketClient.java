@@ -126,7 +126,7 @@ public class SocketClient implements Client, Runnable {
 					offset = 0;
 					Redis.log("%d: reset offset".formatted(id));
 				} else {
-					offset += outputStream.count();
+					offset += outputStream.count() - offset;
 					Redis.log("%d: offset: %d".formatted(id, offset));
 				}
 			}
