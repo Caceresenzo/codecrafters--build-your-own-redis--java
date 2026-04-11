@@ -102,6 +102,8 @@ public class ReplicaClient implements Client, Runnable {
 		send(RArray.of(
 			RString.bulk("REPLCONF"),
 			RString.bulk("capa"),
+			RString.bulk("eof"),
+			RString.bulk("capa"),
 			RString.bulk("psync2")
 		));
 
