@@ -1,7 +1,5 @@
 package redis.command.builtin.geospatial;
 
-import java.util.List;
-
 import redis.Redis;
 import redis.client.Client;
 import redis.command.Command;
@@ -13,7 +11,7 @@ import redis.type.RString;
 
 public record GeoPosCommand(
 	RString key,
-	List<RString> members
+	RArray<RString> members
 ) implements Command {
 
 	@Override

@@ -17,9 +17,9 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import redis.client.Client;
 import redis.client.SocketClient;
-import redis.command.CommandParser;
 import redis.command.CommandResponse;
 import redis.command.ParsedCommand;
+import redis.command.parser.GlobalCommandParser;
 import redis.configuration.Configuration;
 import redis.store.PubSub;
 import redis.store.Storage;
@@ -38,7 +38,7 @@ public class Redis {
 	private final @Getter PubSub pubSub = new PubSub();
 	private final @Getter List<SocketClient> replicas = Collections.synchronizedList(new ArrayList<>());
 	private @Getter AtomicLong replicationOffset = new AtomicLong();
-	private final CommandParser commandParser = new CommandParser();
+	private final GlobalCommandParser commandParser = new GlobalCommandParser();
 	private final ReentrantLock lock = new ReentrantLock(true);
 	private final Map<String, Condition> condititions = new ConcurrentHashMap<>();
 
