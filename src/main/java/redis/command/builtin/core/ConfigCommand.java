@@ -23,7 +23,7 @@ public record ConfigCommand(
 
 			return new CommandResponse(RArray.of(
 				key,
-				RString.simple(String.valueOf(property.argument(0).get()))
+				RString.bulk(String.valueOf(property.argument(0).get()))
 			));
 		}
 

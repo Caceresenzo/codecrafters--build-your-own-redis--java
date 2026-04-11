@@ -49,6 +49,14 @@ public record RArray<T extends RValue>(
 		return new RArray<>(List.of(e1, e2, e3));
 	}
 
+	public static <T extends RValue> RArray<T> of(@NonNull T e1, @NonNull T e2, @NonNull T e3, @NonNull T e4) {
+		return new RArray<>(List.of(e1, e2, e3, e4));
+	}
+
+	public static <T extends RValue> RArray<T> of(@NonNull T e1, @NonNull T e2, @NonNull T e3, @NonNull T e4, @NonNull T e5) {
+		return new RArray<>(List.of(e1, e2, e3, e4, e5));
+	}
+
 	public static <T extends RValue> RArray<T> view(@NonNull List<T> list) {
 		return new RArray<>(list);
 	}
