@@ -32,7 +32,7 @@ public record IncrCommand(
 				}
 
 				final var newValue = newValueBox.x = value + 1;
-				return RString.simple(String.valueOf(newValue));
+				return RString.bulk(String.valueOf(newValue));
 			}
 		);
 

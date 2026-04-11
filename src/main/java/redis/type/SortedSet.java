@@ -90,7 +90,7 @@ public class SortedSet {
 
 		final var rValues = range.subList(sortedValues)
 			.stream()
-			.map(RString::detect)
+			.map(RString::bulk)
 			.toList();
 
 		return RArray.view(rValues);
@@ -123,8 +123,8 @@ public class SortedSet {
 			entries.get(sortedValues.get(index)).index = index;
 		}
 
-		System.out.println(entries);
-		System.out.println(sortedValues);
+		// System.out.println(entries);
+		// System.out.println(sortedValues);
 	}
 
 	class EntryValue {
