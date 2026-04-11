@@ -2,6 +2,7 @@ package redis.command.builtin.acl;
 
 import redis.Redis;
 import redis.client.Client;
+import redis.client.SocketClient;
 import redis.command.Command;
 import redis.command.CommandResponse;
 import redis.type.RError;
@@ -17,6 +18,8 @@ public record AuthCommand(
 
 	@Override
 	public CommandResponse execute(Redis redis, Client client) {
+		final var socketClient = SocketClient.cast(client);
+
 		final var userRepository = redis.getUserRepository();
 
 		final var user = userRepository.authenticate(username, password);
@@ -24,11 +27,17 @@ public record AuthCommand(
 			throw WRONG_CREDENTIALS.asException();
 		}
 
+		socketClient.setUser(user.get());
 		return new CommandResponse(ROk.OK);
 	}
 
 	@Override
 	public boolean isQueueable() {
+		return false;
+	}
+
+	@Override
+	public boolean isAuthenticationRequired() {
 		return false;
 	}
 

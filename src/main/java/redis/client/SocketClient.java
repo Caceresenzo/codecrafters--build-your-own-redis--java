@@ -58,8 +58,9 @@ public class SocketClient implements Client, Runnable {
 		this.deserializer = new Deserializer(inputStream);
 		this.serializer = new Serializer(outputStream);
 
-		final var userRepository = redis.getUserRepository();
-		this.user = userRepository.findByName("default").orElseThrow();
+		this.user = redis.getUserRepository()
+			.authenticateDefaultNoPassword()
+			.orElse(null);
 	}
 
 	@SneakyThrows

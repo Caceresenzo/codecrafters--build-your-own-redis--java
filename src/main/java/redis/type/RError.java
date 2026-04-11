@@ -12,6 +12,7 @@ public record RError(
 	private static final String INVALID_COMMAND_IN_SUBSCRIBED_CONTEXT_FORMAT = "ERR Can't execute '%s': only (P|S)SUBSCRIBE / (P|S)UNSUBSCRIBE / PING / QUIT / RESET are allowed in this context";
 	private static final RError VALUE_NOT_A_FLOAT = new RError("ERR value is not a valid float");
 	private static final String NO_SUCH_USER_FORMAT = "ERR no such user '%s'";
+	private static final RError AUTHENTICATION_REQUIRED = new RError("NOAUTH Authentication required.");
 
 	public RError(String message) {
 		this(RString.simple(message));
@@ -51,6 +52,10 @@ public record RError(
 
 	public static RError noSuchUser(String username) {
 		return new RError(NO_SUCH_USER_FORMAT.formatted(username));
+	}
+
+	public static RError authenticationRequired() {
+		return AUTHENTICATION_REQUIRED;
 	}
 
 }

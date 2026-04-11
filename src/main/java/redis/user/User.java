@@ -35,6 +35,10 @@ public class User {
 		return Collections.unmodifiableSet(flags);
 	}
 
+	public boolean hasNoPassword() {
+		return flags.contains(FLAG_NOPASS);
+	}
+
 	public Set<String> getPasswords() {
 		return Collections.unmodifiableSet(passwords);
 	}
