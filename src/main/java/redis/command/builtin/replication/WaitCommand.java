@@ -49,13 +49,13 @@ public record WaitCommand(
 					RString.bulk("*")
 				),
 				false
-			));
+			), true);
 
 			replica.setReplicateConsumer((x) -> future.complete(1));
 			futures.add(Map.entry(replica, future));
 		});
 
-		var remaining = (long) timeout.toSeconds();
+		var remaining = timeout.toSeconds();
 
 		for (final var entry : futures) {
 			if (acks.get() >= numberOfReplicas) {
