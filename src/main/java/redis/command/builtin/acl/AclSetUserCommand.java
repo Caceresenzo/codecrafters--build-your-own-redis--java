@@ -4,12 +4,16 @@ import redis.Redis;
 import redis.client.Client;
 import redis.command.Command;
 import redis.command.CommandResponse;
-import redis.type.RArray;
+import redis.type.RError;
+import redis.type.ROk;
 import redis.type.RString;
 
-public record AclGetUserCommand(
-	RString username
+public record AclSetUserCommand(
+	RString username,
+	RString newPassword
 ) implements Command {
+
+	public static final RError USER_NOT_FOUND = new RError("ERR no such user");
 
 	@Override
 	public CommandResponse execute(Redis redis, Client client) {
@@ -17,22 +21,10 @@ public record AclGetUserCommand(
 
 		final var user = userRepository.getByName(username);
 
-		return new CommandResponse(RArray.of(
-			RString.bulk("flags"),
-			RArray.view(
-				user.getFlags()
-					.stream()
-					.map(RString::bulk)
-					.toList()
-			),
-			RString.bulk("passwords"),
-			RArray.view(
-				user.getPasswords()
-					.stream()
-					.map(RString::bulk)
-					.toList()
-			)
-		));
+		final var password = newPassword.content().substring(1); /* remove the leading '>' character */
+		user.addPassword(password);
+
+		return new CommandResponse(ROk.OK);
 	}
 
 	@Override

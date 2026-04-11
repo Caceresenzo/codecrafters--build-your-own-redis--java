@@ -29,6 +29,7 @@ import redis.type.RErrorException;
 import redis.type.ROk;
 import redis.type.RString;
 import redis.type.RValue;
+import redis.user.UserRepository;
 
 @RequiredArgsConstructor
 public class Redis {
@@ -37,10 +38,11 @@ public class Redis {
 	private final @Getter Storage storage;
 	private final @Getter PubSub pubSub = new PubSub();
 	private final @Getter List<SocketClient> replicas = Collections.synchronizedList(new ArrayList<>());
-	private @Getter AtomicLong replicationOffset = new AtomicLong();
+	private final @Getter AtomicLong replicationOffset = new AtomicLong();
 	private final GlobalCommandParser commandParser = new GlobalCommandParser();
 	private final ReentrantLock lock = new ReentrantLock(true);
 	private final Map<String, Condition> condititions = new ConcurrentHashMap<>();
+	private final @Getter UserRepository userRepository = new UserRepository();
 
 	@SuppressWarnings("unchecked")
 	public CommandResponse evaluate(Client client, Object value, long read) {
