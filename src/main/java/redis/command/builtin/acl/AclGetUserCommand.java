@@ -14,7 +14,7 @@ public record AclGetUserCommand(
 	@Override
 	public CommandResponse execute(Redis redis, Client client) {
 		return new CommandResponse(RArray.of(
-			RString.bulk(username),
+			RString.bulk("flags"),
 			RArray.empty()
 		));
 	}
