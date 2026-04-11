@@ -45,6 +45,7 @@ import redis.command.builtin.stream.XReadCommand;
 import redis.command.builtin.transaction.DiscardCommand;
 import redis.command.builtin.transaction.ExecCommand;
 import redis.command.builtin.transaction.MultiCommand;
+import redis.command.builtin.transaction.WatchCommand;
 import redis.type.GeoCoordinate;
 import redis.type.RArray;
 import redis.type.RError;
@@ -66,6 +67,7 @@ public class GlobalCommandParser extends CommandParser {
 		register("DISCARD", noArgumentCommand(DiscardCommand::new));
 		register("EXEC", noArgumentCommand(ExecCommand::new));
 		register("MULTI", noArgumentCommand(MultiCommand::new));
+		register("WATCH", allArgumentCommand(WatchCommand::new));
 
 		register("CONFIG", doubleArgumentCommand(ConfigCommand::new));
 		register("ECHO", singleArgumentCommand(EchoCommand::new));
