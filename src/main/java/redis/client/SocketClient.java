@@ -64,7 +64,7 @@ public class SocketClient implements Client, Runnable {
 		Redis.log("%d: connected".formatted(id));
 
 		try (socket) {
-			while (!replicate) {
+			while (true) {
 				inputStream.begin();
 
 				final var request = deserializer.read();
@@ -81,7 +81,7 @@ public class SocketClient implements Client, Runnable {
 					Redis.log("%d: no response".formatted(id));
 					continue;
 				} else {
-					Redis.log("%d: responding: %s".formatted(id, response));
+					Redis.log("%d: responding: %s (replicate=%s)".formatted(id, response, replicate));
 					serialize(response.value());
 				}
 
@@ -154,19 +154,37 @@ public class SocketClient implements Client, Runnable {
 		redis.getPubSub().unsubscribeAll(this);
 	}
 
+	public void enableReplicate() {
+		if (replicate) {
+			throw new IllegalStateException("replication is already enabled");
+		}
+
+	}
+
 	@SneakyThrows
 	@Locked
 	private void serialize(RValue value) {
 		serializer.write(value);
 	}
 
-	public void command(CommandResponse value) {
-		final var inserted = pendingCommands.offer(value);
-		Redis.log("%d: queue command: %s - inserted?=%s newSize=%s".formatted(id, value, inserted, pendingCommands.size()));
+	@SneakyThrows
+	public void command(CommandResponse value, boolean queue) {
+		if (queue) {
+			// System.out.printf("SocketClient.command() offeringTo=%s %n", pendingCommands);
+			final var inserted = pendingCommands.offer(value);
+			// System.out.printf("SocketClient.command() inserted=%s %n", inserted);
+			Redis.log("%d: queue command: %s - inserted?=%s newSize=%s".formatted(id, value, inserted, pendingCommands.size()));
 
-		if (!inserted) {
-			Redis.log("%d: retry queue command: %s".formatted(id, value));
-			pendingCommands.add(value);
+			if (!inserted) {
+				Redis.log("%d: retry queue command: %s".formatted(id, value));
+				pendingCommands.add(value);
+			}
+		} else {
+			Redis.log("%d: sending command: %s".formatted(id, value));
+
+			outputStream.begin();
+			serialize(value.value());
+			serializer.flush();
 		}
 	}
 
