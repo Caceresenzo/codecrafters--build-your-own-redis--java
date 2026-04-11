@@ -23,8 +23,9 @@ public class Storage {
 		System.out.println(map);
 	}
 
-	public void set(RString key, Object value, Duration milliseconds) {
-		map.put(key.content(), Cell.expiry(value, milliseconds.toMillis()));
+	public void set(RString key, Object value, Duration expiration) {
+		map.put(key.content(), Cell.expiry(value, expiration.toMillis()));
+		System.out.println(map);
 	}
 
 	public void put(RString key, Cell<Object> cell) {
