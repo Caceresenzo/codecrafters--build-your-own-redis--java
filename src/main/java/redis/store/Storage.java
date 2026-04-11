@@ -2,9 +2,11 @@ package redis.store;
 
 import java.time.Duration;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
+import redis.client.SocketClient;
 import redis.type.RArray;
 import redis.type.RString;
 import redis.type.SortedSet;
@@ -13,6 +15,7 @@ public class Storage {
 
 	private final Map<String, Cell<Object>> map = new ConcurrentHashMap<>();
 	private final Map<String, SortedSet> sortedSets = new ConcurrentHashMap<>();
+	private final Map<String, Set<SocketClient>> watchedKeys = new ConcurrentHashMap<>();
 
 	public void clear() {
 		map.clear();
@@ -92,6 +95,24 @@ public class Storage {
 
 	public SortedSet getSortedSet(String key) {
 		return sortedSets.get(key);
+	}
+
+	public void watch(String key, SocketClient socketClient) {
+		watchedKeys.computeIfAbsent(key, (__) -> ConcurrentHashMap.newKeySet()).add(socketClient);
+	}
+
+	public void unwatch(String key, SocketClient socketClient) {
+		final var clients = watchedKeys.get(key);
+		if (clients == null) {
+			return;
+		}
+
+		clients.remove(socketClient);
+
+		// TODO Potential race condition here
+		if (clients.isEmpty()) {
+			watchedKeys.remove(key);
+		}
 	}
 
 }
