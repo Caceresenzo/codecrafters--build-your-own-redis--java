@@ -23,7 +23,7 @@ public class Stream {
 	private final Condition newDataCondition = lock.writeLock().newCondition();
 	private UniqueIdentifier lastIdentifier;
 
-	public UniqueIdentifier add(Identifier id, RArray<RValue> content) {
+	public UniqueIdentifier add(Identifier id, RArray<? extends RValue> content) {
 		lock.writeLock().lock();
 
 		try {
@@ -150,8 +150,8 @@ public class Stream {
 			}
 
 			final var sequenceNumber = milliseconds == 0
-				? 1l
-				: 0l;
+				? 1L
+				: 0L;
 
 			return new UniqueIdentifier(
 				milliseconds,
