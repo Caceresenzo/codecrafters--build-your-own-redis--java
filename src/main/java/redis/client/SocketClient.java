@@ -23,6 +23,7 @@ import redis.serial.Deserializer;
 import redis.serial.Serializer;
 import redis.type.RBlob;
 import redis.type.RValue;
+import redis.user.User;
 import redis.util.TrackedInputStream;
 import redis.util.TrackedOutputStream;
 
@@ -40,6 +41,7 @@ public class SocketClient implements Client, Runnable {
 	private final BlockingQueue<CommandResponse> pendingCommands = new ArrayBlockingQueue<>(128, true);
 	private @Setter Consumer<Object> replicateConsumer;
 	private @Getter @Setter List<ParsedCommand> queuedCommands;
+	private @Getter @Setter User user;
 
 	private final TrackedInputStream inputStream;
 	private final TrackedOutputStream outputStream;
@@ -55,6 +57,9 @@ public class SocketClient implements Client, Runnable {
 		this.outputStream = new TrackedOutputStream(socket.getOutputStream());
 		this.deserializer = new Deserializer(inputStream);
 		this.serializer = new Serializer(outputStream);
+
+		final var userRepository = redis.getUserRepository();
+		this.user = userRepository.findByName("default").orElseThrow();
 	}
 
 	@SneakyThrows
