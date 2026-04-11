@@ -84,9 +84,6 @@ public class Main {
 
 				final var thread = threadFactory.newThread(client);
 				thread.start();
-
-				// FIXME codecrafters tester is failing because of out of order...
-				Thread.sleep(100l);
 			}
 		}
 	}
