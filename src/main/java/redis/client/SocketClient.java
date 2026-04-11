@@ -221,9 +221,7 @@ public class SocketClient implements Client, Runnable {
 
 		watchedKeyChanged = false;
 
-		for (final var key : watchedKeys) {
-			redis.getStorage().unwatch(key, this);
-		}
+		unwatchAll();
 
 		watchedKeys.clear();
 
@@ -258,6 +256,12 @@ public class SocketClient implements Client, Runnable {
 	public void notifyWatchedKeyChanged(String key) {
 		Redis.log("%d: notified that watched key changed: %s".formatted(id, key));
 		watchedKeyChanged = true;
+	}
+
+	public void unwatchAll() {
+		for (final var key : watchedKeys) {
+			redis.getStorage().unwatch(key, this);
+		}
 	}
 
 	public static SocketClient cast(Client client) {
