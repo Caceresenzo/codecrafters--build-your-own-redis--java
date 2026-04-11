@@ -14,7 +14,7 @@ import redis.type.stream.identifier.UniqueIdentifier;
 public record XAddCommand(
 	RString key,
 	Identifier id,
-	RArray<RValue> keyValues
+	RArray<? extends RValue> keyValues
 ) implements Command {
 
 	@Override
