@@ -39,14 +39,21 @@ public class User {
 		return Collections.unmodifiableSet(passwords);
 	}
 
-	@SneakyThrows
 	public void addPassword(String plainPassword) {
+		passwords.add(hashPassword(plainPassword));
+		flags.remove(FLAG_NOPASS);
+	}
+
+	public boolean verifyPassword(String plainPassword) {
+		return passwords.contains(hashPassword(plainPassword));
+	}
+
+	@SneakyThrows
+	public static final String hashPassword(String plainPassword) {
 		final var digest = MessageDigest.getInstance("SHA-256");
 		final var hash = digest.digest(plainPassword.getBytes());
-		final var password = HexFormat.of().formatHex(hash);
 
-		this.passwords.add(password);
-		this.flags.remove(FLAG_NOPASS);
+		return HexFormat.of().formatHex(hash);
 	}
 
 }

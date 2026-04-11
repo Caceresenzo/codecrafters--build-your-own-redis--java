@@ -27,4 +27,20 @@ public class UserRepository {
 		return findByName(name).orElseThrow(() -> RError.noSuchUser(name).asException());
 	}
 
+	public Optional<User> authenticate(RString username, RString password) {
+		final var name = username.content();
+
+		final var user = findByName(name);
+		if (user.isEmpty()) {
+			return Optional.empty();
+		}
+
+		final var plainPassword = password.content();
+		if (!user.get().verifyPassword(plainPassword)) {
+			return Optional.empty();
+		}
+
+		return user;
+	}
+
 }

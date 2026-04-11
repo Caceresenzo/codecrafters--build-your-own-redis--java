@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 
 import redis.command.Command;
+import redis.command.builtin.acl.AuthCommand;
 import redis.command.builtin.core.ConfigCommand;
 import redis.command.builtin.core.EchoCommand;
 import redis.command.builtin.core.GetCommand;
@@ -100,6 +101,7 @@ public class GlobalCommandParser extends CommandParser {
 		register("GEOSEARCH", this::parseGeoSearch);
 
 		register("ACL", new AclCommandParser());
+		register("AUTH", doubleArgumentCommand(AuthCommand::new));
 	}
 
 	private BiFunction<String, RArray<RString>, Command> rangeCommand(TriFunction<RString, Integer, Integer, Command> constructor) {
