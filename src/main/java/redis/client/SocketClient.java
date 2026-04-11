@@ -6,6 +6,8 @@ import java.io.StringWriter;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -40,7 +42,11 @@ public class SocketClient implements Client, Runnable {
 	private @Getter @Setter long offset = 0;
 	private final BlockingQueue<CommandResponse> pendingCommands = new ArrayBlockingQueue<>(128, true);
 	private @Setter Consumer<Object> replicateConsumer;
+
 	private @Getter @Setter List<ParsedCommand> queuedCommands;
+	private final Set<String> watchedKeys = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+	private boolean watchedKeyChanged = false;
+
 	private @Getter @Setter User user;
 
 	private final TrackedInputStream inputStream;
@@ -158,6 +164,7 @@ public class SocketClient implements Client, Runnable {
 		}
 
 		redis.getPubSub().unsubscribeAll(this);
+		discardTransaction();
 	}
 
 	public void enableReplicate() {
@@ -212,6 +219,14 @@ public class SocketClient implements Client, Runnable {
 
 		queuedCommands = null;
 
+		watchedKeyChanged = false;
+
+		for (final var key : watchedKeys) {
+			redis.getStorage().unwatch(key, this);
+		}
+
+		watchedKeys.clear();
+
 		return commands;
 	}
 
@@ -227,6 +242,22 @@ public class SocketClient implements Client, Runnable {
 	public void notifySubscription(RValue value) {
 		Redis.log("%d: notifying subscription: %s".formatted(id, value));
 		serialize(value);
+	}
+
+	public void watch(String key) {
+		if (watchedKeys.add(key)) {
+			redis.getStorage().watch(key, this);
+			Redis.log("%d: watching key: %s".formatted(id, key));
+		}
+	}
+
+	public boolean hasWatchedKeyChanged() {
+		return watchedKeyChanged;
+	}
+
+	public void notifyWatchedKeyChanged(String key) {
+		Redis.log("%d: notified that watched key changed: %s".formatted(id, key));
+		watchedKeyChanged = true;
 	}
 
 	public static SocketClient cast(Client client) {
