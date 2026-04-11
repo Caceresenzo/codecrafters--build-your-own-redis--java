@@ -122,7 +122,7 @@ public class RdbLoader {
 	public void parseMagic() throws IOException {
 		final var magic = new String(inputStream.readNBytes(5), StandardCharsets.US_ASCII);
 
-		if (!magic.equals("REDIS")) {
+		if (!"REDIS".equals(magic)) {
 			throw new IllegalStateException("invalid magic: " + magic);
 		}
 	}
@@ -191,7 +191,7 @@ public class RdbLoader {
 		}
 
 		final var content = inputStream.readNBytes(length);
-		return RString.detect(new String(content, StandardCharsets.US_ASCII));
+		return RString.bulk(new String(content, StandardCharsets.US_ASCII));
 	}
 
 	public void skip(int length) throws IOException {

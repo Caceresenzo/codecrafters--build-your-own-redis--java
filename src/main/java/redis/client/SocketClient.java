@@ -35,7 +35,7 @@ public class SocketClient implements Client, Runnable {
 	private final Redis redis;
 	private boolean connected;
 	private Consumer<SocketClient> disconnectListener;
-	private @Setter boolean replicate;
+	private boolean replicate;
 	private @Getter @Setter long offset = 0;
 	private final BlockingQueue<CommandResponse> pendingCommands = new ArrayBlockingQueue<>(128, true);
 	private @Setter Consumer<Object> replicateConsumer;
@@ -81,7 +81,7 @@ public class SocketClient implements Client, Runnable {
 					Redis.log("%d: no response".formatted(id));
 					continue;
 				} else {
-					Redis.log("%d: responding: %s".formatted(id, response));
+					Redis.log("%d: responding: %s (replicate=%s)".formatted(id, response, replicate));
 					serialize(response.value());
 				}
 
@@ -152,6 +152,14 @@ public class SocketClient implements Client, Runnable {
 		}
 
 		redis.getPubSub().unsubscribeAll(this);
+	}
+
+	public void enableReplicate() {
+		if (replicate) {
+			throw new IllegalStateException("replication is already enabled");
+		}
+
+		replicate = true;
 	}
 
 	@SneakyThrows

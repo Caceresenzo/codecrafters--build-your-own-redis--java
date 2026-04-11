@@ -55,7 +55,7 @@ public record WaitCommand(
 			futures.add(Map.entry(replica, future));
 		});
 
-		var remaining = (long) timeout.toSeconds();
+		var remaining = timeout.toSeconds();
 
 		for (final var entry : futures) {
 			if (acks.get() >= numberOfReplicas) {
