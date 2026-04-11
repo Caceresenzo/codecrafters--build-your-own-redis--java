@@ -32,6 +32,10 @@ public record RArray<T extends RValue>(
 		return view(items.reversed());
 	}
 
+	public RArray<T> subList(int fromIndex, int toIndex) {
+		return view(items.subList(fromIndex, toIndex));
+	}
+
 	@Override
 	public final String toString() {
 		return "RArray[%s]".formatted(items);

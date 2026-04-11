@@ -1,16 +1,12 @@
-package redis.command;
+package redis.command.parser;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.TreeMap;
 import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
+import redis.command.Command;
 import redis.command.builtin.core.ConfigCommand;
 import redis.command.builtin.core.EchoCommand;
 import redis.command.builtin.core.GetCommand;
@@ -55,11 +51,9 @@ import redis.type.RString;
 import redis.type.stream.identifier.Identifier;
 import redis.util.TriFunction;
 
-public class CommandParser {
+public class GlobalCommandParser extends CommandParser {
 
-	private final Map<String, BiFunction<String, List<RString>, Command>> parsers = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-
-	public CommandParser() {
+	public GlobalCommandParser() {
 		register("PSYNC", (__, ___) -> new PSyncCommand());
 		register("REPLCONF", doubleArgumentCommand(ReplConfCommand::new));
 		register("WAIT", this::parseWait);
@@ -104,78 +98,11 @@ public class CommandParser {
 		register("GEOPOS", this::parseGeoPos);
 		register("GEODIST", tripleArgumentCommand(GeoDistCommand::new));
 		register("GEOSEARCH", this::parseGeoSearch);
+
+		register("ACL", new AclCommandParser());
 	}
 
-	public void register(String name, BiFunction<String, List<RString>, Command> parser) {
-		parsers.put(name, parser);
-	}
-
-	public ParsedCommand parse(RArray<RString> arguments) {
-		if (arguments.isEmpty()) {
-			throw new RError("ERR command array is empty").asException();
-		}
-
-		final var name = arguments.getFirst().toUpperCase();
-
-		final var parser = parsers.get(name);
-		if (parser == null) {
-			throw new RError("ERR unknown '%s' command".formatted(name)).asException();
-		}
-
-		final var command = parser.apply(name, arguments.subList(1, arguments.size()));
-
-		return new ParsedCommand(arguments, command);
-	}
-
-	private BiFunction<String, List<RString>, Command> noArgumentCommand(Supplier<Command> constructor) {
-		return (name, arguments) -> {
-			if (!arguments.isEmpty()) {
-				throw wrongNumberOfArguments(name).asException();
-			}
-
-			return constructor.get();
-		};
-	}
-
-	private BiFunction<String, List<RString>, Command> singleArgumentCommand(Function<RString, Command> constructor) {
-		return (name, arguments) -> {
-			if (arguments.size() != 1) {
-				throw wrongNumberOfArguments(name).asException();
-			}
-
-			final var first = arguments.getFirst();
-			return constructor.apply(first);
-		};
-	}
-
-	private BiFunction<String, List<RString>, Command> doubleArgumentCommand(BiFunction<RString, RString, Command> constructor) {
-		return (name, arguments) -> {
-			if (arguments.size() != 2) {
-				throw wrongNumberOfArguments(name).asException();
-			}
-
-			final var first = arguments.getFirst();
-			final var second = arguments.get(1);
-
-			return constructor.apply(first, second);
-		};
-	}
-
-	private BiFunction<String, List<RString>, Command> tripleArgumentCommand(TriFunction<RString, RString, RString, Command> constructor) {
-		return (name, arguments) -> {
-			if (arguments.size() != 3) {
-				throw wrongNumberOfArguments(name).asException();
-			}
-
-			final var first = arguments.getFirst();
-			final var second = arguments.get(1);
-			final var third = arguments.get(2);
-
-			return constructor.apply(first, second, third);
-		};
-	}
-
-	private BiFunction<String, List<RString>, Command> rangeCommand(TriFunction<RString, Integer, Integer, Command> constructor) {
+	private BiFunction<String, RArray<RString>, Command> rangeCommand(TriFunction<RString, Integer, Integer, Command> constructor) {
 		return (name, arguments) -> {
 			if (arguments.size() != 3) {
 				throw wrongNumberOfArguments(name).asException();
@@ -189,7 +116,7 @@ public class CommandParser {
 		};
 	}
 
-	private WaitCommand parseWait(String name, List<RString> arguments) {
+	private WaitCommand parseWait(String name, RArray<RString> arguments) {
 		final var numberOfReplicas = arguments.get(0).asInteger().getAsInt();
 		final var timeout = arguments.get(1).asInteger().getAsInt();
 
@@ -199,7 +126,7 @@ public class CommandParser {
 		);
 	}
 
-	private XAddCommand parseXAdd(String name, List<RString> arguments) {
+	private XAddCommand parseXAdd(String name, RArray<RString> arguments) {
 		if (arguments.size() <= 2) {
 			throw wrongNumberOfArguments(name).asException();
 		}
@@ -207,7 +134,7 @@ public class CommandParser {
 		final var key = arguments.get(0);
 		final var id = Identifier.parse(arguments.get(1));
 
-		final var keyValues = RArray.view(arguments.subList(2, arguments.size()));
+		final var keyValues = arguments.subList(2, arguments.size());
 
 		return new XAddCommand(
 			key,
@@ -216,7 +143,7 @@ public class CommandParser {
 		);
 	}
 
-	private XRangeCommand parseXRange(String name, List<RString> arguments) {
+	private XRangeCommand parseXRange(String name, RArray<RString> arguments) {
 		if (arguments.size() <= 2) {
 			throw wrongNumberOfArguments(name).asException();
 		}
@@ -232,7 +159,7 @@ public class CommandParser {
 		);
 	}
 
-	private XReadCommand parseXRead(String name, List<RString> arguments) {
+	private XReadCommand parseXRead(String name, RArray<RString> arguments) {
 		if (arguments.size() <= 2) {
 			throw wrongNumberOfArguments(name).asException();
 		}
@@ -280,7 +207,7 @@ public class CommandParser {
 		);
 	}
 
-	private SetCommand parseSet(String name, List<RString> arguments) {
+	private SetCommand parseSet(String name, RArray<RString> arguments) {
 		if (arguments.size() != 2 && arguments.size() != 4) {
 			throw wrongNumberOfArguments(name).asException();
 		}
@@ -303,7 +230,7 @@ public class CommandParser {
 		return new SetCommand(key, value, expiration);
 	}
 
-	private Command parseListPush(String name, List<RString> arguments) {
+	private Command parseListPush(String name, RArray<RString> arguments) {
 		if (arguments.size() < 2) {
 			throw wrongNumberOfArguments(name).asException();
 		}
@@ -318,7 +245,7 @@ public class CommandParser {
 		return new RPushCommand(key, values);
 	}
 
-	private LPopCommand parseLPop(String name, List<RString> arguments) {
+	private LPopCommand parseLPop(String name, RArray<RString> arguments) {
 		final var argumentsSize = arguments.size();
 		if (argumentsSize < 1 || argumentsSize > 2) {
 			throw wrongNumberOfArguments(name).asException();
@@ -332,7 +259,7 @@ public class CommandParser {
 		return new LPopCommand(key, count);
 	}
 
-	private BLPopCommand parseBLPop(String name, List<RString> arguments) {
+	private BLPopCommand parseBLPop(String name, RArray<RString> arguments) {
 		final var argumentsSize = arguments.size();
 		if (argumentsSize < 1 || argumentsSize > 2) {
 			throw wrongNumberOfArguments(name).asException();
@@ -350,7 +277,7 @@ public class CommandParser {
 		return new BLPopCommand(key, Optional.empty());
 	}
 
-	private ZAddCommand parseZAdd(String name, List<RString> arguments) {
+	private ZAddCommand parseZAdd(String name, RArray<RString> arguments) {
 		final var argumentsSize = arguments.size();
 		if (argumentsSize != 3) {
 			throw wrongNumberOfArguments(name).asException();
@@ -363,7 +290,7 @@ public class CommandParser {
 		return new ZAddCommand(key, score, value);
 	}
 
-	private GeoAddCommand parseGeoAdd(String name, List<RString> arguments) {
+	private GeoAddCommand parseGeoAdd(String name, RArray<RString> arguments) {
 		final var argumentsSize = arguments.size();
 		if (argumentsSize != 4) {
 			throw wrongNumberOfArguments(name).asException();
@@ -377,7 +304,7 @@ public class CommandParser {
 		return new GeoAddCommand(key, new GeoCoordinate(longitude, latitude), member);
 	}
 
-	private GeoPosCommand parseGeoPos(String name, List<RString> arguments) {
+	private GeoPosCommand parseGeoPos(String name, RArray<RString> arguments) {
 		final var argumentsSize = arguments.size();
 		if (argumentsSize < 2) {
 			throw wrongNumberOfArguments(name).asException();
@@ -389,7 +316,7 @@ public class CommandParser {
 		return new GeoPosCommand(key, members);
 	}
 
-	private GeoSearchCommand parseGeoSearch(String name, List<RString> arguments) {
+	private GeoSearchCommand parseGeoSearch(String name, RArray<RString> arguments) {
 		final var argumentsSize = arguments.size();
 		if (argumentsSize < 7) {
 			throw wrongNumberOfArguments(name).asException();
@@ -422,10 +349,6 @@ public class CommandParser {
 			new GeoCoordinate(longitude, latitude),
 			radius
 		);
-	}
-
-	private RError wrongNumberOfArguments(String name) {
-		return new RError("ERR wrong number of arguments for '%s' command".formatted(name));
 	}
 
 }
