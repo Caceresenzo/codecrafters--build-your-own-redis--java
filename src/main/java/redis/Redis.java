@@ -80,6 +80,10 @@ public class Redis {
 		final var command = parsedCommand.command();
 
 		if (client instanceof SocketClient socketClient) {
+			if (command.isAuthenticationRequired() && socketClient.getUser() == null) {
+				throw RError.authenticationRequired().asException();
+			}
+
 			if (socketClient.isInTransaction() && command.isQueueable()) {
 				socketClient.queueCommand(parsedCommand);
 				return new CommandResponse(ROk.QUEUED);

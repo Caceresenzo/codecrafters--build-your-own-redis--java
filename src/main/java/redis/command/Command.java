@@ -26,4 +26,9 @@ public interface Command {
 		return false;
 	}
 
+	/** @return Whether the command only be executed if the user is authenticated. */
+	default boolean isAuthenticationRequired() {
+		return true;
+	}
+
 }

@@ -27,15 +27,24 @@ public class UserRepository {
 		return findByName(name).orElseThrow(() -> RError.noSuchUser(name).asException());
 	}
 
-	public Optional<User> authenticate(RString username, RString password) {
-		final var name = username.content();
+	public Optional<User> authenticateDefaultNoPassword() {
+		return authenticate("default", "");
+	}
 
+	public Optional<User> authenticate(RString username, RString password) {
+		return authenticate(username.content(), password.content());
+	}
+
+	public Optional<User> authenticate(String name, String plainPassword) {
 		final var user = findByName(name);
 		if (user.isEmpty()) {
 			return Optional.empty();
 		}
 
-		final var plainPassword = password.content();
+		if (plainPassword.isEmpty() && user.get().hasNoPassword()) {
+			return user;
+		}
+
 		if (!user.get().verifyPassword(plainPassword)) {
 			return Optional.empty();
 		}
