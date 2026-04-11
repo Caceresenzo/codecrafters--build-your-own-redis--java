@@ -46,7 +46,7 @@ public class Redis {
 	public CommandResponse evaluate(Client client, Object value, long read) {
 		try {
 			if (value instanceof RArray array) {
-				return execute(client, (RArray<RString>) array);
+				return execute(client, array);
 			}
 
 			return new CommandResponse(new RError("ERR command be sent in an array"));
@@ -89,6 +89,7 @@ public class Redis {
 		}
 
 		final var response = command.execute(this, client);
+		// System.out.printf("Redis.doExecute() response=%s command=%s replicas=%s %n", response, command, replicas);
 		if (command.isPropagatable()) {
 			progagate(parsedCommand.raw());
 		}
@@ -149,7 +150,7 @@ public class Redis {
 	}
 
 	public static void log(String message) {
-		System.out.println("[%d] [%s] %s".formatted(ProcessHandle.current().pid(), LocalDateTime.now(), message));
+		// System.out.println("[%d] [%s] %s".formatted(ProcessHandle.current().pid(), LocalDateTime.now(), message));
 	}
 
 	public static void error(String message) {
