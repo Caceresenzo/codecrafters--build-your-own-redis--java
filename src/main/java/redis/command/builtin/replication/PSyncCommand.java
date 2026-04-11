@@ -19,7 +19,7 @@ public record PSyncCommand() implements Command {
 	public CommandResponse execute(Redis redis, Client client) {
 		final var socketClient = SocketClient.cast(client);
 
-		socketClient.setReplicate(true);
+		socketClient.enableReplicate();
 
 		final var replicas = redis.getReplicas();
 
@@ -30,8 +30,8 @@ public record PSyncCommand() implements Command {
 			throw COULD_NOT_ENABLE.asException();
 		}
 
-		socketClient.command(new CommandResponse(RString.simple("FULLRESYNC %s 0".formatted(redis.getMasterReplicationId()))));
-		socketClient.command(new CommandResponse(RBlob.bulk(Base64.getDecoder().decode("UkVESVMwMDEx+glyZWRpcy12ZXIFNy4yLjD6CnJlZGlzLWJpdHPAQPoFY3RpbWXCbQi8ZfoIdXNlZC1tZW3CsMQQAPoIYW9mLWJhc2XAAP/wbjv+wP9aog=="))));
+		socketClient.command(new CommandResponse(RString.simple("FULLRESYNC %s 0".formatted(redis.getMasterReplicationId()))), false);
+		socketClient.command(new CommandResponse(RBlob.bulk(Base64.getDecoder().decode("UkVESVMwMDEx+glyZWRpcy12ZXIFNy4yLjD6CnJlZGlzLWJpdHPAQPoFY3RpbWXCbQi8ZfoIdXNlZC1tZW3CsMQQAPoIYW9mLWJhc2XAAP/wbjv+wP9aog=="))), false);
 
 		return null;
 	}
