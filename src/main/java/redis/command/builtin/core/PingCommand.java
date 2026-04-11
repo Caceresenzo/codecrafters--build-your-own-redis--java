@@ -12,7 +12,7 @@ import redis.type.RString;
 public record PingCommand() implements Command {
 
 	private static final RString PONG = RString.simple("PONG");
-	private static final RArray<RString> PONG_SUBSCRIPTION = RArray.of(PubSub.MessageKeys.PONG, RString.empty(false));
+	private static final RArray<RString> PONG_SUBSCRIPTION = RArray.of(PubSub.MessageKeys.PONG, RString.empty(true));
 
 	@Override
 	public CommandResponse execute(Redis redis, Client client) {

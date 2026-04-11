@@ -86,7 +86,7 @@ public class Main {
 				thread.start();
 
 				// FIXME codecrafters tester is failing because of out of order...
-				Thread.sleep(100l);
+				// Thread.sleep(100l);
 			}
 		}
 	}
