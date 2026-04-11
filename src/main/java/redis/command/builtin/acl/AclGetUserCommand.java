@@ -15,7 +15,9 @@ public record AclGetUserCommand(
 	public CommandResponse execute(Redis redis, Client client) {
 		return new CommandResponse(RArray.of(
 			RString.bulk("flags"),
-			RArray.empty()
+			RArray.of(
+				RString.bulk("nopass")
+			)
 		));
 	}
 
