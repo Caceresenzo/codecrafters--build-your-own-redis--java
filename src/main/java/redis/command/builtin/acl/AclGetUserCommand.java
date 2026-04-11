@@ -17,7 +17,9 @@ public record AclGetUserCommand(
 			RString.bulk("flags"),
 			RArray.of(
 				RString.bulk("nopass")
-			)
+			),
+			RString.bulk("passwords"),
+			RArray.empty()
 		));
 	}
 
