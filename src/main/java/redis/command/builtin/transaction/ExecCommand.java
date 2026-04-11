@@ -7,6 +7,7 @@ import redis.command.Command;
 import redis.command.CommandResponse;
 import redis.type.RArray;
 import redis.type.RError;
+import redis.type.RNil;
 
 public record ExecCommand() implements Command {
 
@@ -20,7 +21,14 @@ public record ExecCommand() implements Command {
 			throw WITHOUT_MULTI.asException();
 		}
 
-		final var values = socketClient.discardTransaction()
+		final var watchedKeyChanged = socketClient.hasWatchedKeyChanged();
+		final var queuedCommands = socketClient.discardTransaction();
+
+		if (watchedKeyChanged) {
+			return new CommandResponse(RNil.ARRAY);
+		}
+
+		final var values = queuedCommands
 			.stream()
 			.map((command) -> redis.execute(client, command))
 			.map(CommandResponse::value)
