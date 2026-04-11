@@ -10,7 +10,7 @@ import redis.type.ROk;
 
 public record MultiCommand() implements Command {
 
-	private static final RError ALREADY_IN_TRANSACTION = new RError("ERR already in transaction");
+	public static final RError ALREADY_IN_TRANSACTION = new RError("ERR already in transaction");
 
 	@Override
 	public CommandResponse execute(Redis redis, Client client) {
