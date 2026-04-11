@@ -19,7 +19,7 @@ public record PSyncCommand() implements Command {
 	public CommandResponse execute(Redis redis, Client client) {
 		final var socketClient = SocketClient.cast(client);
 
-		socketClient.setReplicate(true);
+		socketClient.enableReplicate();
 
 		final var replicas = redis.getReplicas();
 

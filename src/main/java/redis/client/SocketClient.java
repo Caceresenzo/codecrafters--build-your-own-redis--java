@@ -64,7 +64,7 @@ public class SocketClient implements Client, Runnable {
 		Redis.log("%d: connected".formatted(id));
 
 		try (socket) {
-			while (!replicate) {
+			while (true) {
 				inputStream.begin();
 
 				final var request = deserializer.read();
@@ -81,54 +81,11 @@ public class SocketClient implements Client, Runnable {
 					Redis.log("%d: no response".formatted(id));
 					continue;
 				} else {
-					Redis.log("%d: responding: %s".formatted(id, response));
+					Redis.log("%d: responding: %s (replicate=%s)".formatted(id, response, replicate));
 					serialize(response.value());
 				}
 
 				outputStream.flush();
-			}
-
-			if (replicate) {
-				Thread.ofVirtual().start(new Runnable() {
-
-					@Override
-					@SneakyThrows
-					public void run() {
-						while (socket.isConnected()) {
-							final var request = deserializer.read();
-							if (request == null) {
-								break;
-							}
-
-							final var consumer = replicateConsumer;
-							if (consumer != null) {
-								consumer.accept(request);
-							}
-						}
-					}
-
-				});
-			}
-
-			while (replicate && socket.isConnected()) {
-				final var command = pendingCommands.poll(1, TimeUnit.MINUTES);
-				if (command == null) {
-					continue;
-				}
-
-				Redis.log("%d: send command: %s".formatted(id, command));
-
-				outputStream.begin();
-				serialize(command.value());
-				serializer.flush();
-
-				if (command.value() instanceof RBlob) {
-					offset = 0;
-					Redis.log("%d: reset offset".formatted(id));
-				} else {
-					offset += outputStream.count();
-					Redis.log("%d: offset: %d".formatted(id, offset));
-				}
 			}
 		} catch (Exception exception) {
 			Redis.error("%d: returned an error: %s".formatted(id, exception.getMessage()));
@@ -155,13 +112,71 @@ public class SocketClient implements Client, Runnable {
 	}
 
 	@SneakyThrows
+	public void enableReplicate() {
+		if (replicate) {
+			throw new IllegalStateException("replication is already enabled");
+		}
+
+		Thread.ofVirtual().start(new Runnable() {
+
+			@Override
+			@SneakyThrows
+			public void run() {
+				while (socket.isConnected()) {
+					final var request = deserializer.read();
+					if (request == null) {
+						break;
+					}
+
+					final var consumer = replicateConsumer;
+					if (consumer != null) {
+						consumer.accept(request);
+					}
+				}
+			}
+
+		});
+
+		Thread.ofVirtual().start(new Runnable() {
+
+			@Override
+			@SneakyThrows
+			public void run() {
+				while (socket.isConnected()) {
+					final var command = pendingCommands.poll(1, TimeUnit.MINUTES);
+					if (command == null) {
+						continue;
+					}
+
+					Redis.log("%d: send command: %s".formatted(id, command));
+
+					outputStream.begin();
+					serialize(command.value());
+					serializer.flush();
+
+					if (command.value() instanceof RBlob) {
+						offset = 0;
+						Redis.log("%d: reset offset".formatted(id));
+					} else {
+						offset += outputStream.count();
+						Redis.log("%d: offset: %d".formatted(id, offset));
+					}
+				}
+			}
+
+		});
+	}
+
+	@SneakyThrows
 	@Locked
 	private void serialize(RValue value) {
 		serializer.write(value);
 	}
 
 	public void command(CommandResponse value) {
+		// System.out.printf("SocketClient.command() offeringTo=%s %n", pendingCommands);
 		final var inserted = pendingCommands.offer(value);
+		// System.out.printf("SocketClient.command() inserted=%s %n", inserted);
 		Redis.log("%d: queue command: %s - inserted?=%s newSize=%s".formatted(id, value, inserted, pendingCommands.size()));
 
 		if (!inserted) {
