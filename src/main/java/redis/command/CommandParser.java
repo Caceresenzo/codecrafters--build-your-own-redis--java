@@ -199,7 +199,6 @@ public class CommandParser {
 		);
 	}
 
-	@SuppressWarnings("unchecked")
 	private XAddCommand parseXAdd(String name, List<RString> arguments) {
 		if (arguments.size() <= 2) {
 			throw wrongNumberOfArguments(name).asException();
@@ -208,8 +207,7 @@ public class CommandParser {
 		final var key = arguments.get(0);
 		final var id = Identifier.parse(arguments.get(1));
 
-		@SuppressWarnings({ "rawtypes" })
-		final var keyValues = (RArray) RArray.view(arguments.subList(2, arguments.size()));
+		final var keyValues = RArray.view(arguments.subList(2, arguments.size()));
 
 		return new XAddCommand(
 			key,
@@ -292,12 +290,14 @@ public class CommandParser {
 		var expiration = Optional.<Duration>empty();
 
 		if (arguments.size() == 4) {
-			final var px = arguments.get(2);
-			if (!RString.equalsIgnoreCase(px, "px")) {
+			final var unit = arguments.get(2);
+			if (RString.equalsIgnoreCase(unit, "px")) {
+				expiration = Optional.of(arguments.get(3).asDuration(ChronoUnit.MILLIS));
+			} else if (RString.equalsIgnoreCase(unit, "ex")) {
+				expiration = Optional.of(arguments.get(3).asDuration(ChronoUnit.SECONDS));
+			} else {
 				throw RError.syntax().asException();
 			}
-
-			expiration = Optional.of(arguments.get(3).asDuration(ChronoUnit.MILLIS));
 		}
 
 		return new SetCommand(key, value, expiration);
