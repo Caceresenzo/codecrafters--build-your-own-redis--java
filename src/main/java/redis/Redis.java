@@ -89,6 +89,7 @@ public class Redis {
 		}
 
 		final var response = command.execute(this, client);
+		System.out.printf("Redis.doExecute() response=%s command=%s replicas=%s %n", response, command, replicas);
 		if (command.isPropagatable()) {
 			progagate(parsedCommand.raw());
 		}
