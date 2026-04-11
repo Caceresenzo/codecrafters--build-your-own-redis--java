@@ -18,11 +18,14 @@ public record WatchCommand(
 
 	@Override
 	public CommandResponse execute(Redis redis, Client client) {
-
 		final var socketClient = SocketClient.cast(client);
 
 		if (socketClient.isInTransaction()) {
 			throw IN_TRANSACTION.asException();
+		}
+
+		for (RString key : keys.items()) {
+			socketClient.watch(key.content());
 		}
 
 		return new CommandResponse(ROk.OK);
