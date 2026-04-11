@@ -95,6 +95,12 @@ public abstract class CommandParser {
 		};
 	}
 
+	protected BiFunction<String, RArray<RString>, Command> allArgumentCommand(Function<RArray<RString>, Command> constructor) {
+		return (name, arguments) -> {
+			return constructor.apply(arguments);
+		};
+	}
+
 	protected RError wrongNumberOfArguments(String name) {
 		return new RError("ERR wrong number of arguments for '%s' command".formatted(name));
 	}
