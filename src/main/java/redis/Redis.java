@@ -12,9 +12,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
+import redis.aof.AppendOnlyFileManager;
 import redis.client.Client;
 import redis.client.SocketClient;
 import redis.command.CommandResponse;
@@ -43,12 +46,19 @@ public class Redis {
 	private final ReentrantLock lock = new ReentrantLock(true);
 	private final Map<String, Condition> condititions = new ConcurrentHashMap<>();
 	private final @Getter UserRepository userRepository = new UserRepository();
+	private @Setter AppendOnlyFileManager appendOnlyFileManager;
 
 	@SuppressWarnings("unchecked")
-	public CommandResponse evaluate(Client client, Object value, long read) {
+	public CommandResponse evaluate(Client client, Object value, long read, Supplier<byte[]> commandBytes) {
 		try {
 			if (value instanceof RArray array) {
-				return execute(client, array);
+				final var response = execute(client, array);
+
+				if (appendOnlyFileManager != null) {
+					appendOnlyFileManager.log(commandBytes.get());
+				}
+
+				return response;
 			}
 
 			return new CommandResponse(new RError("ERR command be sent in an array"));

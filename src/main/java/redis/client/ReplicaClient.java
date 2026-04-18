@@ -53,7 +53,7 @@ public class ReplicaClient implements Client, Runnable {
 				final var read = inputStream.count();
 
 				Redis.log("replica: received (%s): %s".formatted(read, request));
-				final var response = redis.evaluate(this, request, read);
+				final var response = redis.evaluate(this, request, read, inputStream::buffer);
 
 				if (response == null) {
 					Redis.log("replica: no response");
