@@ -61,8 +61,10 @@ public class Main {
 
 			if (configuration.appendOnly().isYes()) {
 				final var appendDirectory = directory.resolve(configuration.appendDirectoryName().getValue());
-
 				Files.createDirectories(appendDirectory);
+
+				final var firstAppendFile = appendDirectory.resolve(configuration.appendFileName().getValue() + ".1.incr.aof");
+				Files.createFile(firstAppendFile);
 			}
 		}
 
