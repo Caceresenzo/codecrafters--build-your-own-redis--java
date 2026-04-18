@@ -47,6 +47,15 @@ public class Redis {
 	private final Map<String, Condition> condititions = new ConcurrentHashMap<>();
 	private final @Getter UserRepository userRepository = new UserRepository();
 	private @Setter AppendOnlyFileManager appendOnlyFileManager;
+	private boolean running;
+
+	public void start() {
+		if (appendOnlyFileManager != null) {
+			appendOnlyFileManager.load(this);
+		}
+
+		running = true;
+	}
 
 	@SuppressWarnings("unchecked")
 	public CommandResponse evaluate(Client client, Object value, long read, Supplier<byte[]> commandBytes) {
@@ -67,7 +76,7 @@ public class Redis {
 			final var command = commandParser.parse(arguments);
 			final var result = doExecute(client, command);
 
-			if (command.isWriting() && appendOnlyFileManager != null) {
+			if (running && command.isWriting() && appendOnlyFileManager != null) {
 				appendOnlyFileManager.log(commandBytes.get());
 			}
 
