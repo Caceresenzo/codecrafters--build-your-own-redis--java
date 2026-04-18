@@ -39,4 +39,9 @@ public record IncrCommand(
 		return new CommandResponse(RInteger.of(newValueBox.x));
 	}
 
+	@Override
+	public boolean isWriting() {
+		return true;
+	}
+
 }

@@ -26,4 +26,9 @@ public record ZRemCommand(
 		);
 	}
 
+	@Override
+	public boolean isWriting() {
+		return true;
+	}
+
 }

@@ -6,4 +6,10 @@ import redis.type.RString;
 public record ParsedCommand(
 	RArray<RString> raw,
 	Command command
-) {}
+) {
+
+	public boolean isWriting() {
+		return command.isWriting();
+	}
+
+}

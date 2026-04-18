@@ -40,4 +40,9 @@ public record BLPopCommand(
 		return new CommandResponse(RArray.of(key, first));
 	}
 
+	@Override
+	public boolean isWriting() {
+		return true;
+	}
+
 }

@@ -35,6 +35,11 @@ public record LPopCommand(
 	}
 
 	@Override
+	public boolean isWriting() {
+		return true;
+	}
+
+	@Override
 	public boolean isPropagatable() {
 		return true;
 	}

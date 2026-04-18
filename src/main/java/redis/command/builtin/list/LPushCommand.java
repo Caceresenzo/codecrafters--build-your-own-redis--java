@@ -43,6 +43,11 @@ public record LPushCommand(
 	}
 
 	@Override
+	public boolean isWriting() {
+		return true;
+	}
+
+	@Override
 	public boolean isPropagatable() {
 		return true;
 	}

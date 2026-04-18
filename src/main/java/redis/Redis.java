@@ -52,13 +52,7 @@ public class Redis {
 	public CommandResponse evaluate(Client client, Object value, long read, Supplier<byte[]> commandBytes) {
 		try {
 			if (value instanceof RArray array) {
-				final var response = execute(client, array);
-
-				if (appendOnlyFileManager != null) {
-					appendOnlyFileManager.log(commandBytes.get());
-				}
-
-				return response;
+				return execute(client, array, commandBytes);
 			}
 
 			return new CommandResponse(new RError("ERR command be sent in an array"));
@@ -68,11 +62,16 @@ public class Redis {
 		}
 	}
 
-	private CommandResponse execute(Client client, RArray<RString> arguments) {
+	private CommandResponse execute(Client client, RArray<RString> arguments, Supplier<byte[]> commandBytes) {
 		try {
 			final var command = commandParser.parse(arguments);
+			final var result = doExecute(client, command);
 
-			return doExecute(client, command);
+			if (command.isWriting() && appendOnlyFileManager != null) {
+				appendOnlyFileManager.log(commandBytes.get());
+			}
+
+			return result;
 		} catch (RErrorException exception) {
 			return new CommandResponse(exception.getError());
 		}
