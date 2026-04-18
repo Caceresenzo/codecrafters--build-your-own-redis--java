@@ -63,8 +63,12 @@ public class Main {
 				final var appendDirectory = directory.resolve(configuration.appendDirectoryName().getValue());
 				Files.createDirectories(appendDirectory);
 
-				final var firstAppendFile = appendDirectory.resolve(configuration.appendFileName().getValue() + ".1.incr.aof");
+				final var firstAppendFileName = configuration.appendFileName().getValue() + ".1.incr.aof";
+				final var firstAppendFile = appendDirectory.resolve(firstAppendFileName);
 				Files.createFile(firstAppendFile);
+
+				final var manifestFile = appendDirectory.resolve(configuration.appendFileName().getValue() + ".manifest");
+				Files.writeString(manifestFile, "file %s seq 1 type i\n".formatted(firstAppendFileName));
 			}
 		}
 
