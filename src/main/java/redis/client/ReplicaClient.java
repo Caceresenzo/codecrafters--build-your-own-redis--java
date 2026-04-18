@@ -90,8 +90,7 @@ public class ReplicaClient implements Client, Runnable {
 
 		final var port = redis.getConfiguration()
 			.port()
-			.argument(0, Integer.class)
-			.get();
+			.getValue();
 
 		send(RArray.of(
 			RString.bulk("REPLCONF"),

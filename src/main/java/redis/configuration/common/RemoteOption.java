@@ -1,28 +1,23 @@
 package redis.configuration.common;
 
-import java.util.List;
+import java.net.InetSocketAddress;
 
-import redis.configuration.Argument;
 import redis.configuration.Option;
 
-public class RemoteOption extends Option {
+public class RemoteOption extends Option<InetSocketAddress> {
 
 	public RemoteOption(String name) {
-		super(name, List.of(
-			new StringArgument("host and port")
-		));
+		super(name, null);
 	}
 
-	public Argument<String> hostAndPortArgument() {
-		return argument(0, String.class);
-	}
+	@Override
+	public InetSocketAddress parse(String value) {
+		final var parts = value.split(" ", 2);
 
-	public String host() {
-		return hostAndPortArgument().get().split(" ")[0];
-	}
+		final var address = parts[0];
+		final var port = Integer.parseInt(parts[1]);
 
-	public int port() {
-		return Integer.parseInt(hostAndPortArgument().get().split(" ")[1]);
+		return new InetSocketAddress(address, port);
 	}
 
 }

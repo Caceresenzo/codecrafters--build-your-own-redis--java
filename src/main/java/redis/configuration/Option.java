@@ -1,37 +1,25 @@
 package redis.configuration;
 
-import java.util.ArrayList;
-import java.util.List;
+import lombok.Getter;
 
-public class Option {
+public abstract class Option<T> {
 
-	private final String name;
-	private final List<Argument<?>> arguments;
+	private final @Getter String name;
+	private @Getter T value;
 
-	public Option(String name, List<Argument<?>> arguments) {
+	protected Option(String name, T defaultValue) {
 		this.name = name;
-		this.arguments = new ArrayList<>(arguments);
+		this.value = defaultValue;
+		afterSet();
 	}
 
-	public String name() {
-		return name;
+	public void set(String value) {
+		this.value = parse(value);
+		afterSet();
 	}
 
-	public Argument<?> argument(int index) {
-		return arguments.get(index);
-	}
+	protected void afterSet() {}
 
-	@SuppressWarnings("unchecked")
-	public <R> Argument<R> argument(int index, Class<R> type) {
-		return (Argument<R>) arguments.get(index);
-	}
-
-	public List<Argument<?>> arguments() {
-		return arguments;
-	}
-
-	public int argumentsCount() {
-		return arguments.size();
-	}
+	public abstract T parse(String value);
 
 }
