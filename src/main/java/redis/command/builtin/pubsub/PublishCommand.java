@@ -20,6 +20,11 @@ public record PublishCommand(
 	}
 
 	@Override
+	public boolean isWriting() {
+		return true;
+	}
+
+	@Override
 	public boolean isQueueable() {
 		return false;
 	}

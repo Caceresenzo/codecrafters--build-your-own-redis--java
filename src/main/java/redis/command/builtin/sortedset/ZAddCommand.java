@@ -24,4 +24,9 @@ public record ZAddCommand(
 		return new CommandResponse(RInteger.of(added));
 	}
 
+	@Override
+	public boolean isWriting() {
+		return true;
+	}
+
 }

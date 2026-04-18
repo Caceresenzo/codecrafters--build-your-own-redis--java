@@ -42,4 +42,9 @@ public record XAddCommand(
 		);
 	}
 
+	@Override
+	public boolean isWriting() {
+		return true;
+	}
+
 }
