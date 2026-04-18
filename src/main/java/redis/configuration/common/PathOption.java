@@ -8,8 +8,12 @@ import redis.configuration.Option;
 public class PathOption extends Option {
 
 	public PathOption(String name) {
+		this(name, null);
+	}
+
+	public PathOption(String name, String defaultValue) {
 		super(name, List.of(
-			new StringArgument("path")
+			new StringArgument("path", defaultValue)
 		));
 	}
 
