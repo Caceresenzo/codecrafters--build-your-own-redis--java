@@ -27,4 +27,9 @@ public record GeoAddCommand(
 		return new CommandResponse(RInteger.ONE);
 	}
 
+	@Override
+	public boolean isWriting() {
+		return true;
+	}
+
 }

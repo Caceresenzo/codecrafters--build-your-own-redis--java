@@ -11,6 +11,11 @@ public interface Command {
 		return getClass().getSimpleName().replace("Command", "").toLowerCase();
 	}
 
+	/** @return Whether the command is writing any kind of data and should be stored in the AOF file. */
+	default boolean isWriting() {
+		return false;
+	}
+
 	/** @return Whether the command can be queued and executed when executing a transaction. */
 	default boolean isQueueable() {
 		return true;
