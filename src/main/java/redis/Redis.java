@@ -104,7 +104,7 @@ public class Redis {
 	}
 
 	public String getMasterReplicationId() {
-		return configuration.masterReplicationId().argument(0, String.class).get();
+		return configuration.masterReplicationId().getValue();
 	}
 
 	public void progagate(RArray<RString> command) {

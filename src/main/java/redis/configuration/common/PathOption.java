@@ -1,24 +1,26 @@
 package redis.configuration.common;
 
-import java.util.List;
+import java.nio.file.Path;
 
-import redis.configuration.Argument;
 import redis.configuration.Option;
 
-public class PathOption extends Option {
+public class PathOption extends Option<Path> {
 
 	public PathOption(String name) {
-		this(name, null);
+		super(name, null);
 	}
 
-	public PathOption(String name, String defaultValue) {
-		super(name, List.of(
-			new StringArgument("path", defaultValue)
-		));
+	public PathOption(String name, Path defaultValue) {
+		super(name, defaultValue);
 	}
 
-	public Argument<String> pathArgument() {
-		return argument(0, String.class);
+	@Override
+	public Path parse(String value) {
+		return Path.of(value);
+	}
+
+	public static PathOption currentDirectory(String name) {
+		return new PathOption(name, Path.of(System.getProperty("user.dir")));
 	}
 
 }

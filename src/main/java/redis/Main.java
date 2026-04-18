@@ -4,8 +4,6 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.stream.Collectors;
 
 import lombok.SneakyThrows;
 import redis.client.ReplicaClient;
@@ -33,46 +31,42 @@ public class Main {
 				continue;
 			}
 
-			final var argumentsCount = option.argumentsCount();
-			for (var jndex = 0; jndex < argumentsCount; ++jndex) {
-				final var argumentValue = args[index + 1 + jndex];
-				final var argument = option.argument(jndex);
+			option.set(args[index + 1]);
 
-				argument.set(argumentValue);
-			}
-
-			index += argumentsCount;
+			++index;
 		}
 
 		for (final var option : configuration.options()) {
-			final var arguments = option.arguments()
-				.stream()
-				.map((argument) -> "%s=`%s`".formatted(argument.name(), argument.get()))
-				.collect(Collectors.joining(", "));
-
-			System.out.println("configuration: %s(%s)".formatted(option.name(), arguments));
+			System.out.println("configuration: %s=%s".formatted(option.getName(), option.getValue()));
 		}
 
 		final var isSlave = configuration.isSlave();
 		System.out.println("configuration: isSlave=%s".formatted(isSlave));
 
 		final var redis = new Redis(configuration, storage);
+		final var directory = configuration.directory().getValue();
 
 		if (isSlave) {
 			connectToMaster(redis);
 		} else {
-			final var directory = configuration.directory().pathArgument();
-			final var databaseFilename = configuration.databaseFilename().pathArgument();
-			if (directory.isSet() && databaseFilename.isSet()) {
-				final var path = Paths.get(directory.get(), databaseFilename.get());
+			final var databaseFilename = configuration.databaseFilename().getValue();
+
+			if (databaseFilename != null) {
+				final var path = directory.resolve(databaseFilename);
 
 				if (Files.exists(path)) {
 					RdbLoader.load(path, storage);
 				}
 			}
+
+			if (configuration.appendOnly().isYes()) {
+				final var appendDirectory = directory.resolve(configuration.appendDirectoryName().getValue());
+
+				Files.createDirectories(appendDirectory);
+			}
 		}
 
-		final var port = configuration.port().argument(0, Integer.class).get();
+		final var port = configuration.port().getValue();
 		System.out.println("port: %s".formatted(port));
 
 		try (final var serverSocket = new ServerSocket(port)) {
@@ -93,13 +87,11 @@ public class Main {
 
 	@SneakyThrows
 	public static void connectToMaster(Redis redis) {
-		final var replicaOf = redis.getConfiguration().replicaOf();
-		final var host = replicaOf.host();
-		final var port = replicaOf.port();
+		final var replicaOf = redis.getConfiguration().replicaOf().getValue();
 
-		System.out.println("replica: connect to master %s:%s".formatted(host, port));
+		System.out.println("replica: connect to master %s:%s".formatted(replicaOf.getAddress().getCanonicalHostName(), replicaOf.getPort()));
 
-		final var socket = new Socket(host, port);
+		final var socket = new Socket(replicaOf.getAddress(), replicaOf.getPort());
 		Thread.ofVirtual().start(new ReplicaClient(socket, redis));
 	}
 
