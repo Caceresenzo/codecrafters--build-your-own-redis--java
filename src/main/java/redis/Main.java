@@ -72,6 +72,8 @@ public class Main {
 			}
 		}
 
+		redis.start();
+
 		final var port = configuration.port().getValue();
 		System.out.println("port: %s".formatted(port));
 
