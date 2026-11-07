@@ -8,6 +8,7 @@ import java.util.function.BiFunction;
 
 import redis.command.Command;
 import redis.command.builtin.acl.AuthCommand;
+import redis.command.builtin.bitset.SetbitCommand;
 import redis.command.builtin.core.ConfigCommand;
 import redis.command.builtin.core.EchoCommand;
 import redis.command.builtin.core.GetCommand;
@@ -106,6 +107,8 @@ public class GlobalCommandParser extends CommandParser {
 
 		register("ACL", new AclCommandParser());
 		register("AUTH", doubleArgumentCommand(AuthCommand::new));
+
+		register("SETBIT", this::parseSetBit);
 	}
 
 	private BiFunction<String, RArray<RString>, Command> rangeCommand(TriFunction<RString, Integer, Integer, Command> constructor) {
@@ -355,6 +358,19 @@ public class GlobalCommandParser extends CommandParser {
 			new GeoCoordinate(longitude, latitude),
 			radius
 		);
+	}
+
+	private SetbitCommand parseSetBit(String name, RArray<RString> arguments) {
+		final var argumentsSize = arguments.size();
+		if (argumentsSize != 3) {
+			throw wrongNumberOfArguments(name).asException();
+		}
+
+		final var key = arguments.get(0);
+		final var offset = arguments.get(1).asInteger().getAsInt();
+		final var value = arguments.get(2).asInteger().getAsInt() != 0;
+
+		return new SetbitCommand(key, offset, value);
 	}
 
 }
