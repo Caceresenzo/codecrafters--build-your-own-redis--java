@@ -4,10 +4,12 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.function.BiFunction;
 
 import redis.command.Command;
 import redis.command.builtin.acl.AuthCommand;
+import redis.command.builtin.bitset.BitCountCommand;
 import redis.command.builtin.bitset.GetBitCommand;
 import redis.command.builtin.bitset.SetBitCommand;
 import redis.command.builtin.bitset.StrLenCommand;
@@ -113,6 +115,7 @@ public class GlobalCommandParser extends CommandParser {
 		register("SETBIT", this::parseSetBit);
 		register("GETBIT", this::parseGetBit);
 		register("STRLEN", singleArgumentCommand(StrLenCommand::new));
+		register("BITCOUNT", this::parseBitCount);
 	}
 
 	private BiFunction<String, RArray<RString>, Command> rangeCommand(TriFunction<RString, Integer, Integer, Command> constructor) {
@@ -387,6 +390,19 @@ public class GlobalCommandParser extends CommandParser {
 		final var offset = arguments.get(1).asInteger().getAsInt();
 
 		return new GetBitCommand(key, offset);
+	}
+
+	private BitCountCommand parseBitCount(String name, RArray<RString> arguments) {
+		final var argumentsSize = arguments.size();
+		if (argumentsSize > 3 || argumentsSize < 1) {
+			throw wrongNumberOfArguments(name).asException();
+		}
+
+		final var key = arguments.get(0);
+		final var start = argumentsSize >= 2 ? arguments.get(1).asInteger() : OptionalInt.empty();
+		final var end = argumentsSize >= 3 ? arguments.get(2).asInteger() : OptionalInt.empty();
+
+		return new BitCountCommand(key, start, end);
 	}
 
 }
