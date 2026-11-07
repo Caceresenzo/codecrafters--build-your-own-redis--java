@@ -10,7 +10,7 @@ import redis.command.CommandResponse;
 import redis.type.RInteger;
 import redis.type.RString;
 
-public record SetbitCommand(
+public record SetBitCommand(
 	RString key,
 	int offset,
 	boolean value

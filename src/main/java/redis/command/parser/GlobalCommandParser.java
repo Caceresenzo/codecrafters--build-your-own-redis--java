@@ -8,7 +8,8 @@ import java.util.function.BiFunction;
 
 import redis.command.Command;
 import redis.command.builtin.acl.AuthCommand;
-import redis.command.builtin.bitset.SetbitCommand;
+import redis.command.builtin.bitset.GetBitCommand;
+import redis.command.builtin.bitset.SetBitCommand;
 import redis.command.builtin.core.ConfigCommand;
 import redis.command.builtin.core.EchoCommand;
 import redis.command.builtin.core.GetCommand;
@@ -109,6 +110,7 @@ public class GlobalCommandParser extends CommandParser {
 		register("AUTH", doubleArgumentCommand(AuthCommand::new));
 
 		register("SETBIT", this::parseSetBit);
+		register("GETBIT", this::parseGetBit);
 	}
 
 	private BiFunction<String, RArray<RString>, Command> rangeCommand(TriFunction<RString, Integer, Integer, Command> constructor) {
@@ -360,7 +362,7 @@ public class GlobalCommandParser extends CommandParser {
 		);
 	}
 
-	private SetbitCommand parseSetBit(String name, RArray<RString> arguments) {
+	private SetBitCommand parseSetBit(String name, RArray<RString> arguments) {
 		final var argumentsSize = arguments.size();
 		if (argumentsSize != 3) {
 			throw wrongNumberOfArguments(name).asException();
@@ -370,7 +372,19 @@ public class GlobalCommandParser extends CommandParser {
 		final var offset = arguments.get(1).asInteger().getAsInt();
 		final var value = arguments.get(2).asInteger().getAsInt() != 0;
 
-		return new SetbitCommand(key, offset, value);
+		return new SetBitCommand(key, offset, value);
+	}
+
+	private GetBitCommand parseGetBit(String name, RArray<RString> arguments) {
+		final var argumentsSize = arguments.size();
+		if (argumentsSize != 2) {
+			throw wrongNumberOfArguments(name).asException();
+		}
+
+		final var key = arguments.get(0);
+		final var offset = arguments.get(1).asInteger().getAsInt();
+
+		return new GetBitCommand(key, offset);
 	}
 
 }
