@@ -45,7 +45,7 @@ public record SetBitCommand(
 				bitSet[byteOffset] &= ~(1 << (7 - bitOffset));
 			}
 
-			return RString.detect(new String(bitSet, StandardCharsets.ISO_8859_1));
+			return RString.bulk(new String(bitSet, StandardCharsets.ISO_8859_1));
 		});
 
 		return new CommandResponse(RInteger.of(previousValue.get()));
