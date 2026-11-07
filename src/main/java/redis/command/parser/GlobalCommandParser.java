@@ -10,6 +10,7 @@ import redis.command.Command;
 import redis.command.builtin.acl.AuthCommand;
 import redis.command.builtin.bitset.GetBitCommand;
 import redis.command.builtin.bitset.SetBitCommand;
+import redis.command.builtin.bitset.StrLenCommand;
 import redis.command.builtin.core.ConfigCommand;
 import redis.command.builtin.core.EchoCommand;
 import redis.command.builtin.core.GetCommand;
@@ -111,6 +112,7 @@ public class GlobalCommandParser extends CommandParser {
 
 		register("SETBIT", this::parseSetBit);
 		register("GETBIT", this::parseGetBit);
+		register("STRLEN", singleArgumentCommand(StrLenCommand::new));
 	}
 
 	private BiFunction<String, RArray<RString>, Command> rangeCommand(TriFunction<RString, Integer, Integer, Command> constructor) {
