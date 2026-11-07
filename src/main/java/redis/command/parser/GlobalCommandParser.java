@@ -10,6 +10,7 @@ import java.util.function.BiFunction;
 import redis.command.Command;
 import redis.command.builtin.acl.AuthCommand;
 import redis.command.builtin.bitset.BitCountCommand;
+import redis.command.builtin.bitset.BitOpCommand;
 import redis.command.builtin.bitset.GetBitCommand;
 import redis.command.builtin.bitset.SetBitCommand;
 import redis.command.builtin.bitset.StrLenCommand;
@@ -116,6 +117,7 @@ public class GlobalCommandParser extends CommandParser {
 		register("GETBIT", this::parseGetBit);
 		register("STRLEN", singleArgumentCommand(StrLenCommand::new));
 		register("BITCOUNT", this::parseBitCount);
+		register("BITOP", this::parseBitOp);
 	}
 
 	private BiFunction<String, RArray<RString>, Command> rangeCommand(TriFunction<RString, Integer, Integer, Command> constructor) {
@@ -403,6 +405,23 @@ public class GlobalCommandParser extends CommandParser {
 		final var end = argumentsSize >= 3 ? arguments.get(2).asInteger() : OptionalInt.empty();
 
 		return new BitCountCommand(key, start, end);
+	}
+
+	private Command parseBitOp(String name, RArray<RString> arguments) {
+		final var argumentsSize = arguments.size();
+		if (argumentsSize < 3) {
+			throw wrongNumberOfArguments(name).asException();
+		}
+
+		final var operation = BitOpCommand.Operation.valueOf(arguments.get(0).content());
+		final var destinationKey = arguments.get(1);
+		final var sourceKeys = RArray.copy(arguments.subList(2, argumentsSize));
+
+		if (sourceKeys.size() < 1 || sourceKeys.size() > operation.acceptedParameterCount()) {
+			throw new RError("ERR wrong number of sources for '%s' operation".formatted(operation.name())).asException();
+		}
+
+		return new BitOpCommand(operation, destinationKey, sourceKeys);
 	}
 
 }

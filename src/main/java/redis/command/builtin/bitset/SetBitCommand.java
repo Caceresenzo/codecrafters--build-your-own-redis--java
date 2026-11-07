@@ -51,4 +51,14 @@ public record SetBitCommand(
 		return new CommandResponse(RInteger.of(previousValue.get()));
 	}
 
+	@Override
+	public boolean isPropagatable() {
+		return true;
+	}
+
+	@Override
+	public boolean isWriting() {
+		return true;
+	}
+
 }
